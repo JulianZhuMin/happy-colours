@@ -1,4 +1,4 @@
-# Happy Colours 快樂認識
+# Happy Colors 快樂認識顏色
 
 A Cantonese colour-learning game for toddlers aged 2–4 (best in landscape on an iPhone or iPad). It is one page (index.html) with inline CSS and JS, and has no external or copyrighted assets. The characters are SVG drawn in code, the sound effects are synthesised with Web Audio, and the voice lines are pre-recorded clips in `audio/`.
 
