@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Happy Colours 快樂認識</title>
+<meta name="description" content="快樂認識 Happy Colours：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese colour game for toddlers.">
+<meta name="theme-color" content="#FFF6E5">
+<meta name="app-version" content="3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="快樂認識">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root { --spd: 1; --bg: #FFF6E5; --ink: #3b2f2a; --accent: #e0561b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang HK", "Noto Sans HK", "Noto Sans CJK TC", "Microsoft JhengHei", sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+    -webkit-text-size-adjust: 100%; }
+  button { font: inherit; color: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  .screen[hidden] { display: none !important; }
+  :focus-visible { outline: 4px solid #1565c0; outline-offset: 4px; border-radius: 16px; }
+
+  /* ---------- parent screens ---------- */
+  .parent { gap: min(2.4vh, 18px); text-align: center; background:
+      radial-gradient(circle at 15% 20%, #ffe3c2 0 12%, transparent 13%),
+      radial-gradient(circle at 88% 78%, #d9f0ff 0 14%, transparent 15%), var(--bg); }
+  .parent h1, .parent h2 { margin: 0; font-size: clamp(26px, 9vh, 52px); letter-spacing: .06em; }
+  .app-name .zh, .app-name .en { display: block; }
+  .app-name .en { font-size: .42em; letter-spacing: .04em; font-weight: 700; color: #6a5a50; margin-top: .1em; }
+  .parent h1 .dot { display: inline-block; width: .5em; height: .5em; border-radius: 50%; margin: 0 .04em; vertical-align: .12em; }
+  .parent .sub { margin: 0; font-size: clamp(15px, 4.4vh, 24px); }
+  .mini { display: flex; gap: min(1.6vw, 12px); align-items: flex-end; height: clamp(44px, 15vh, 96px); }
+  .mini svg { height: 100%; width: auto; overflow: visible; }
+  .big-btn { min-width: min(62vw, 440px); min-height: 72px; padding: min(2.6vh, 18px) 36px; border: 0; border-radius: 999px;
+    font-size: clamp(28px, 10vh, 54px); font-weight: 800; letter-spacing: .2em; color: #fff; background: var(--accent);
+    box-shadow: 0 8px 0 #a83d0e, 0 12px 24px rgba(0,0,0,.18); cursor: pointer; }
+  .big-btn:active { transform: translateY(5px); box-shadow: 0 3px 0 #a83d0e; }
+  .btn-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .mid-btn { min-height: 64px; min-width: 150px; padding: 10px 26px; border-radius: 999px; border: 4px solid #3b2f2a22; background: #fff;
+    font-size: clamp(20px, 6.5vh, 32px); font-weight: 700; cursor: pointer; box-shadow: 0 6px 0 #00000022; }
+  .mid-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #00000022; }
+  #again-btn { position: absolute; z-index: 5; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right));
+    min-height: 48px; padding: 0 16px 0 12px; border-radius: 24px; overflow: hidden; border: 2px solid rgba(255,255,255,.8);
+    background: #b84410; color: #fff; font-size: 17px; font-weight: 800; line-height: 1.1; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; touch-action: none; -webkit-touch-callout: none; }
+  #again-btn::after { content: ""; position: absolute; left: 0; bottom: 0; height: 5px; width: calc(var(--p, 0) * 100%); background: #fff; }
+  .overlay { position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center;
+    padding: 20px; touch-action: none; }
+  .overlay[hidden] { display: none; }
+  .overlay .panel { background: #fff; border-radius: 22px; padding: 20px 22px 18px; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+  .overlay h2 { margin: 0 0 4px; font-size: 24px; letter-spacing: 0; }
+  .overlay p { margin: 0 0 16px; font-size: 18px; }
+  .overlay .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .overlay button { font-size: 18px; font-weight: 800; border: 0; border-radius: 14px; padding: 12px 18px; min-height: 52px; cursor: pointer; touch-action: manipulation; }
+  #again-yes { background: #b84410; color: #fff; }
+  #again-no { background: #e9ecef; color: #1d1d1f; }
+  .note { margin: 0; max-width: 46em; padding: 0 16px; font-size: clamp(12px, 3.4vh, 16px); line-height: 1.45; color: #6a5a50; }
+
+  /* ---------- game ---------- */
+  #game { background: linear-gradient(#FFF6E5 0 66%, #F6E4C3 66% 100%); justify-content: center; }
+  #caption { position: absolute; top: max(8px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+    min-height: 1.4em; padding: .1em .7em; border-radius: 999px; background: #fff; border: 3px solid #0000000f;
+    font-size: clamp(22px, 9vh, 56px); font-weight: 800; white-space: nowrap; opacity: 0; transition: opacity calc(.25s / var(--spd)); }
+  #caption.show { opacity: 1; }
+  #caption .sw { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: .3em; vertical-align: -.05em; border: 3px solid #0000002e; }
+  #stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-top: 6vh; }
+  #row { --gap: clamp(4px, 1.2vw, 18px);
+    --w: min(calc((100vw - env(safe-area-inset-left) - env(safe-area-inset-right) - 24px - 6 * var(--gap)) / 7), 52vh);
+    display: flex; flex-wrap: nowrap; gap: var(--gap); align-items: flex-end; justify-content: center; }
+  .char { position: relative; display: block; width: var(--w); height: calc(var(--w) * 0.943); padding: 0; margin: 0; border: 0; background: none;
+    cursor: pointer; border-radius: 24px; }
+  #row { transition: opacity calc(.25s / var(--spd)) ease; }
+  #row.fading { opacity: 0; }
+  .char .scaler, .char .jumper { display: block; width: 100%; height: 100%; transform-origin: 50% 92%; }
+  .char .scaler { transform: scale(.94); transition: transform calc(.35s / var(--spd)) cubic-bezier(.3,1.6,.5,1); }
+  #stage.open .char .scaler { transform: scale(1.1); }
+  #stage.open .char .jumper { filter: drop-shadow(0 6px 6px rgba(0,0,0,.18)); }
+  .char svg { width: 100%; height: 100%; overflow: visible; display: block; }
+  .arm { transform-box: view-box; transition: transform calc(.3s / var(--spd)) ease-out; }
+  .arm-l { transform-origin: 34px 128px; transform: rotate(-28deg); }
+  .arm-r { transform-origin: 166px 128px; transform: rotate(28deg); }
+  .char.hand-up .arm-r { transform: rotate(-52deg); }
+  .char.waving .arm-l { animation: waveL calc(.42s / var(--spd)) ease-in-out infinite alternate; }
+  .char.waving .arm-r { animation: waveR calc(.42s / var(--spd)) ease-in-out infinite alternate; }
+  @keyframes waveL { from { transform: rotate(40deg); } to { transform: rotate(80deg); } }
+  @keyframes waveR { from { transform: rotate(-40deg); } to { transform: rotate(-80deg); } }
+
+  /* intro: one big character in the centre */
+  #stage.intro .char { position: absolute; --w: min(62vh, 44vw); left: calc(50% - var(--w) / 2); top: calc(53% - var(--w) * 0.47); }
+  #stage.intro .char:not(.here) { visibility: hidden; }
+  .char.enter { animation: enter calc(.65s / var(--spd)) cubic-bezier(.2,.9,.3,1.2) both; }
+  .char.leave { animation: leave calc(.55s / var(--spd)) ease-in both; }
+  @keyframes enter { from { transform: translateX(60vw) scale(.5) rotate(12deg); opacity: 0; } 75% { transform: translateX(-3vw) scale(1.04); opacity: 1; } to { transform: none; opacity: 1; } }
+  @keyframes leave { to { transform: translateX(-60vw) scale(.5) rotate(-12deg); opacity: 0; } }
+  .char.pop-in { animation: popin calc(.5s / var(--spd)) cubic-bezier(.2,1.5,.4,1) both; }
+  @keyframes popin { from { transform: scale(0); opacity: 0; } to { transform: none; opacity: 1; } }
+  .jumper.bounce { animation: bounce calc(.6s / var(--spd)) ease-in-out 2; }
+  .jumper.jump { animation: jump calc(.8s / var(--spd)) ease-out 1; }
+  .jumper.wiggle { animation: wiggle calc(.6s / var(--spd)) ease-in-out 1; }
+  @keyframes bounce { 0%,100% { transform: none; } 30% { transform: translateY(-10%) scale(.97,1.04); } 60% { transform: translateY(0) scale(1.05,.95); } }
+  @keyframes jump { 0% { transform: none; } 15% { transform: scale(1.1,.86); } 45% { transform: translateY(-38%) scale(.94,1.08); }
+    72% { transform: translateY(0) scale(1.08,.9); } 86% { transform: translateY(-7%); } 100% { transform: none; } }
+  @keyframes wiggle { 0%,100% { transform: none; } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+  /* wrong tap: gentle "not quite" head-shake with a soft dim (~0.6 s) */
+  .jumper.nope { animation: nope calc(.6s / var(--spd)) ease-in-out 1; }
+  @keyframes nope { 0%,100% { transform: none; filter: none; } 15% { transform: translateX(-5%) rotate(-5deg); filter: brightness(.9) saturate(.85); }
+    35% { transform: translateX(4%) rotate(4deg); } 55% { transform: translateX(-3%) rotate(-3deg); filter: brightness(.9) saturate(.85); }
+    75% { transform: translateX(2%) rotate(1.5deg); } }
+  .jumper.glow { filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #ffb300); }
+
+  /* rotate hint (portrait) */
+  #rotate { display: none; position: fixed; left: 50%; bottom: max(10px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5;
+    align-items: center; gap: 10px; padding: 8px 18px; border-radius: 999px; background: #fff; border: 3px solid #ff7a3d55;
+    font-size: 18px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+  #rotate svg { width: 34px; height: 34px; animation: tilt 2.4s ease-in-out infinite; }
+  @keyframes tilt { 0%,30% { transform: rotate(0); } 60%,100% { transform: rotate(-90deg); } }
+  @media (orientation: portrait) {
+    #rotate { display: flex; }
+    #row { flex-wrap: wrap; max-width: 96vw; --w: min(23vw, 20vh); row-gap: 4vh; }
+    #stage.intro .char { --w: min(74vw, 44vh); }
+    .mini { height: clamp(40px, 8vh, 80px); }
+    .big-btn { min-width: 70vw; font-size: clamp(28px, 6vh, 54px); }
+    .parent h1, .parent h2 { font-size: clamp(26px, 6vh, 52px); }
+    .parent { padding-bottom: 70px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .char.enter { animation: fade calc(.4s / var(--spd)) ease both; }
+    .char.leave { animation: fade calc(.4s / var(--spd)) ease reverse both; }
+    .char.pop-in { animation: fade calc(.3s / var(--spd)) ease both; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .jumper.nope { animation: nopeFade calc(.6s / var(--spd)) ease-in-out 1; }   /* no shake: soft fade instead */
+    @keyframes nopeFade { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+    .jumper.bounce, .jumper.jump, .jumper.wiggle { animation: none; filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #ffb300); }
+    .char .scaler, .arm, #caption { transition: none; }
+    .char.waving .arm-l { animation: none; transform: rotate(60deg); }
+    .char.waving .arm-r { animation: none; transform: rotate(-60deg); }
+    #rotate svg { animation: none; transform: rotate(-90deg); }
+    .big-btn:active, .mid-btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+  <!-- Polite live region, used sparingly: only for spoken words when this device has neither clips nor speech synthesis. -->
+  <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <section id="start" class="screen parent" aria-labelledby="title">
+    <h1 id="title" class="app-name"><span class="zh">快樂認識</span><span class="en" lang="en">Happy Colours</span></h1>
+    <p class="sub">同小朋友一齊認顏色</p>
+    <div class="mini" id="startMini" aria-hidden="true"></div>
+    <button id="startBtn" class="big-btn" type="button" aria-label="開始玩">開始</button>
+    <p class="note" id="voiceNote"></p>
+    <p class="note">七個顏色公仔會逐個出嚟講自己係咩顏色，跟住聽住個顏色，㩒啱嗰個公仔！</p>
+  </section>
+
+  <main id="game" class="screen" hidden aria-labelledby="gameTitle">
+    <h2 id="gameTitle" class="sr-only" tabindex="-1">遊戲進行中</h2>
+    <div id="caption" aria-hidden="true"></div>
+    <div id="stage" class="closed"><div id="row"></div></div>
+  </main>
+
+  <section id="again" class="screen parent" hidden aria-labelledby="againTitle">
+    <h2 id="againTitle" tabindex="-1">玩完喇！</h2>
+    <div class="mini" id="endMini" aria-hidden="true"></div>
+    <div class="btn-row">
+      <button id="doneBtn" class="mid-btn" type="button" aria-label="完，唔玩喇">完</button>
+    </div>
+    <!-- Parent control (same pattern as Say & Go): tap / VoiceOver double-tap -> confirm dialog; press and hold 1.5 s -> restart directly -->
+    <button type="button" id="again-btn" aria-describedby="again-help">
+      <span aria-hidden="true">↻</span><span>再玩過</span>
+    </button>
+    <p id="again-help" class="sr-only">家長用：會先問你確認先再玩。睇得見嘅家長亦可以㩒住一秒半直接再玩。</p>
+    <div id="again-confirm" class="overlay" hidden>
+      <div class="panel" role="alertdialog" aria-modal="true" aria-labelledby="again-title" aria-describedby="again-desc">
+        <h2 id="again-title">再玩過？</h2>
+        <p id="again-desc">重新開始，返去介紹顏色</p>
+        <div class="row">
+          <button type="button" id="again-yes">好，再玩過</button>
+          <button type="button" id="again-no">唔使</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="rotate" role="note">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><rect x="12" y="4" width="16" height="30" rx="4" fill="#fff" stroke="#3b2f2a" stroke-width="3"/><circle cx="20" cy="29" r="1.8" fill="#3b2f2a"/></svg>
+    <span>打橫部機，會更好玩！</span>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+  var APP_NAME = { zh: '快樂認識', en: 'Happy Colours' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
+  var APP_VERSION = '3';   // bump together with CACHE in sw.js
+  var params = new URLSearchParams(location.search);
+  var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
+  document.documentElement.style.setProperty('--spd', SPEED);
+
+  var COLORS = [
+    { id: 'red',    zh: '紅色', body: '#E53935', line: '#8E1B18', snd: 'boing',  f: 330 },
+    { id: 'yellow', zh: '黃色', body: '#FDD835', line: '#A07C00', snd: 'squeak', f: 680 },
+    { id: 'blue',   zh: '藍色', body: '#1E88E5', line: '#0B3F86', snd: 'boing',  f: 220 },
+    { id: 'green',  zh: '綠色', body: '#43A047', line: '#1B5E20', snd: 'pop',    f: 480 },
+    { id: 'grey',   zh: '灰色', body: '#9E9E9E', line: '#4f4f4f', snd: 'squeak', f: 520 },
+    { id: 'black',  zh: '黑色', body: '#222222', line: '#000000', snd: 'boing',  f: 150, dark: true },
+    { id: 'white',  zh: '白色', body: '#FFFFFF', line: '#5d6875', snd: 'pop',    f: 780 }
+  ];
+  var byId = {}; COLORS.forEach(function (c) { byId[c.id] = c; });
+
+  /* ---------- test/debug log ---------- */
+  var T = window.__cg = { log: [], scene: 'start', speed: SPEED, voice: null, reduceMotion: false, version: APP_VERSION };
+  function log(o) { o.at = Math.round(performance.now()); T.log.push(o); }
+  var reduceMQ = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  T.reduceMotion = reduceMQ.matches;
+
+  /* ---------- character drawing ---------- */
+  function charSVG(c) {
+    var b = c.body, l = c.line, sw = 'stroke="' + l + '" stroke-width="5" stroke-linejoin="round"';
+    var faceLine = c.dark ? '#ffffff' : '#2b2b2b';
+    return '<svg viewBox="-22 0 244 230" aria-hidden="true" focusable="false">' +
+      '<g class="arm arm-l"><ellipse cx="6" cy="128" rx="30" ry="13" fill="' + b + '" ' + sw + '/></g>' +
+      '<g class="arm arm-r"><ellipse cx="194" cy="128" rx="30" ry="13" fill="' + b + '" ' + sw + '/></g>' +
+      '<ellipse cx="74" cy="206" rx="22" ry="13" fill="' + b + '" ' + sw + '/>' +
+      '<ellipse cx="126" cy="206" rx="22" ry="13" fill="' + b + '" ' + sw + '/>' +
+      '<path d="M100 32 C146 32 170 66 170 118 C170 172 140 204 100 204 C60 204 30 172 30 118 C30 66 54 32 100 32 Z" fill="' + b + '" ' + sw + '/>' +
+      '<ellipse cx="74" cy="64" rx="18" ry="10" transform="rotate(-25 74 64)" fill="#fff" opacity="' + (c.id === 'white' ? 0 : .32) + '"/>' +
+      '<ellipse cx="76" cy="106" rx="15" ry="18" fill="#fff" stroke="#2b2b2b" stroke-width="2.5"/>' +
+      '<ellipse cx="124" cy="106" rx="15" ry="18" fill="#fff" stroke="#2b2b2b" stroke-width="2.5"/>' +
+      '<circle cx="78" cy="110" r="8.5" fill="#1d1d1d"/><circle cx="126" cy="110" r="8.5" fill="#1d1d1d"/>' +
+      '<circle cx="81" cy="106" r="3" fill="#fff"/><circle cx="129" cy="106" r="3" fill="#fff"/>' +
+      '<ellipse cx="56" cy="140" rx="11" ry="7" fill="#ff6f9a" opacity=".55"/><ellipse cx="144" cy="140" rx="11" ry="7" fill="#ff6f9a" opacity=".55"/>' +
+      '<path d="M78 138 Q100 170 122 138 Q100 146 78 138 Z" fill="#6d1b1b" stroke="' + faceLine + '" stroke-width="' + (c.dark ? 3.5 : 3) + '" stroke-linejoin="round"/>' +
+      '<path d="M90 152 Q100 160 110 152 Q100 148 90 152 Z" fill="#ff7d8a"/>' +
+      '</svg>';
+  }
+
+  var row = document.getElementById('row'), stage = document.getElementById('stage');
+  var els = {};
+  COLORS.forEach(function (c) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'char'; b.dataset.color = c.id;
+    b.setAttribute('aria-label', c.zh + '公仔');
+    b.setAttribute('aria-disabled', 'true');
+    b.innerHTML = '<span class="scaler"><span class="jumper">' + charSVG(c) + '</span></span>';
+    b.addEventListener('click', function (e) { e.preventDefault(); onCharTap(c); });
+    row.appendChild(b); els[c.id] = b;
+  });
+  ['startMini', 'endMini'].forEach(function (id) {
+    document.getElementById(id).innerHTML = COLORS.map(charSVG).join('');
+  });
+
+  /* ---------- audio (Web Audio, all synthesised) ---------- */
+  var ctx = null, master = null, voiceBus = null;
+  function ensureAudio() {
+    try {
+      if (!ctx) {
+        var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+        ctx = new AC();
+        var comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+        master = ctx.createGain(); master.gain.value = 0.55; master.connect(comp);
+        voiceBus = ctx.createGain(); voiceBus.gain.value = 1; voiceBus.connect(ctx.destination);   // clips are pre-normalised
+        CLIP_NAMES.forEach(decodeClip);
+      }
+      if (ctx.state !== 'running') ctx.resume();
+      return true;
+    } catch (e) { return false; }
+  }
+  function unlockAudio() {
+    // iOS 17+: play through the silent switch like a media app (Web Audio is otherwise muted by it)
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignore */ }
+    if (!ensureAudio()) return;
+    try { var buf = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource(); s.buffer = buf; s.connect(ctx.destination); s.start(0); } catch (e) { /* ignore */ }
+  }
+  function tone(type, t0, dur, f0, f1, vol, vib) {
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t0);
+    if (f1) o.frequency.exponentialRampToValueAtTime(f1, t0 + dur * 0.6);
+    if (vib) { var l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = vib.rate; lg.gain.value = vib.depth; l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(t0 + dur); }
+    g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function playSound(kind, c) {
+    log({ t: 'sound', kind: kind, color: c ? c.id : null });
+    if (!ensureAudio()) return;
+    var t = ctx.currentTime + 0.01, f = c ? c.f : 440;
+    if (kind === 'boing') {            // springy sweep with wobble
+      tone('sine', t, 0.55, f * 0.55, f * 1.5, 0.5, { rate: 13, depth: f * 0.18 });
+      tone('triangle', t, 0.4, f * 1.1, f * 2.2, 0.15);
+    } else if (kind === 'squeak') {    // two rubber-duck chirps
+      tone('triangle', t, 0.14, f * 1.6, f * 2.4, 0.35);
+      tone('triangle', t + 0.16, 0.18, f * 1.8, f * 2.8, 0.35);
+    } else if (kind === 'pop') {       // bubbly pop + little sparkle
+      tone('sine', t, 0.12, f * 2.6, f * 0.5, 0.6);
+      tone('sine', t + 0.1, 0.2, f * 1.5, f * 2.5, 0.25);
+    } else if (kind === 'happy') {     // rising arpeggio
+      [523.25, 659.25, 783.99, 1046.5].forEach(function (fr, i) { tone('triangle', t + i * 0.09, 0.3, fr, 0, 0.3); });
+      tone('sine', t + 0.36, 0.5, 1318.5, 0, 0.18);
+    } else if (kind === 'bye') {       // gentle "da-da-da-daa"
+      [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
+    } else if (kind === 'start') {
+      [392, 523.25, 659.25].forEach(function (fr, i) { tone('triangle', t + i * 0.08, 0.25, fr, 0, 0.25); });
+    }
+  }
+
+  /* ---------- speech (Cantonese) ---------- */
+  var RATE = 0.85;          // fallback TTS normal rate (intro, Hello, Byebye)
+  var QUIZ_RATE = 0.7;      // quiz prompt: slower, said twice
+  var QUIZ_GAP_MS = 900;    // pause between the two quiz readings
+  var synth = window.speechSynthesis || null;
+  var voice = null, keep = [];
+  var NOVELTY = /(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|kathy|ralph)/i;
+  function normLang(v) { return String(v.lang || '').replace(/_/g, '-').toLowerCase(); }
+  function scoreVoice(v) {
+    var l = normLang(v), n = String(v.name || ''), s = 0;
+    if (l === 'zh-hk' || l.indexOf('yue') === 0 || l === 'zh-hant-hk') s = 100; else return -1;
+    if (/premium/i.test(n)) s += 30; else if (/enhanced|增強|優化/i.test(n)) s += 20;
+    if (/sin-?ji|善怡/i.test(n)) s += 12;
+    if (/google/i.test(n)) s += 8;
+    if (/microsoft.*(hiumaan|hiugaai|wanlung)/i.test(n)) s += 9;
+    if (v.localService) s += 2;
+    if (NOVELTY.test(n)) s -= 60;
+    return s;
+  }
+  function pickVoice() {
+    if (!synth) return;
+    var vs = []; try { vs = synth.getVoices() || []; } catch (e) { /* ignore */ }
+    var best = null, bs = -1;
+    vs.forEach(function (v) { var s = scoreVoice(v); if (s > bs) { bs = s; best = v; } });
+    voice = best; T.voice = best ? { name: best.name, lang: best.lang } : null;
+    updateVoiceNote();
+  }
+  function updateVoiceNote() {
+    var note = document.getElementById('voiceNote'); if (!note) return;
+    if (!CLIP_NAMES || !clipState) return;   // clip module not set up yet
+    var failed = CLIP_NAMES.filter(function (n) { return clipState[n] === 'failed'; }).length;
+    if (!failed) { note.textContent = ''; note.hidden = true; return; }   // normal case: nothing technical on screen
+    note.hidden = false;
+    note.textContent = '有 ' + failed + ' 段錄音載入唔到，' + (synth && voice ? '會用手機語音：' + voice.name : '會用手機預設語音。');
+  }
+  if (synth) { pickVoice(); try { synth.addEventListener('voiceschanged', pickVoice); } catch (e) { synth.onvoiceschanged = pickVoice; } }
+  else pickVoice();
+
+  function unlockSpeech() {
+    if (!synth) return;
+    try {
+      var u = new SpeechSynthesisUtterance(' ');
+      u.volume = 0; u.lang = 'zh-HK'; if (voice) u.voice = voice;
+      keep.push(u); u.onend = u.onerror = function () { keep.splice(keep.indexOf(u), 1); };
+      synth.speak(u);
+    } catch (e) { /* ignore */ }
+  }
+  var live = document.getElementById('live');
+  function announce(text) { live.textContent = ''; setTimeout(function () { live.textContent = text; }, 60); }
+
+  // Speak and resolve when finished (onend), with a timeout fallback (iOS sometimes never fires onend).
+  function speakOnce(text, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      if (!synth) { announce(opts.show || text); setTimeout(resolve, 1100 / SPEED); return; }
+      if (!voice) pickVoice();
+      var u = new SpeechSynthesisUtterance(text), done = false, timer;
+      u.lang = voice ? voice.lang.replace(/_/g, '-') : 'zh-HK';
+      if (voice) u.voice = voice;
+      u.rate = opts.rate || RATE; u.pitch = opts.pitch || 1.15; u.volume = 1;
+      function fin(ev) {
+        if (done) return; done = true; clearTimeout(timer);
+        var i = keep.indexOf(u); if (i >= 0) keep.splice(i, 1);
+        resolve(ev && ev.error ? ev.error : 'end');
+      }
+      u.onend = function () { fin(); }; u.onerror = function (e) { fin({ error: (e && e.error) || 'error' }); };
+      timer = setTimeout(function () { fin({ error: 'timeout' }); }, 2600 + 450 * text.length);
+      keep.push(u);   // keep a reference so the utterance isn't garbage-collected before onend
+      try { if (synth.paused) synth.resume(); synth.speak(u); } catch (e) { fin({ error: 'throw' }); }
+    });
+  }
+
+  /* ---------- pre-recorded voice clips (audio/*.mp3, made with edge-tts neural voices) ---------- */
+  var CLIP_NAMES = [];
+  COLORS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-slow'); });
+  CLIP_NAMES.push('hello', 'byebye', 'uhoh');
+  var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
+  T.clips = clipState;
+  function clipNotify(n) { var w = clipWaiters[n] || []; clipWaiters[n] = []; w.forEach(function (f) { f(); }); }
+  function clipFail(n) { clipState[n] = 'failed'; clipNotify(n); updateVoiceNote(); }
+  function decodeClip(n) {
+    if (!ctx || !clipData[n] || clipBuf[n] || clipState[n] === 'decoding' || clipState[n] === 'failed') return;
+    clipState[n] = 'decoding';
+    var done = false;
+    var ok = function (b) { if (done) return; done = true; clipBuf[n] = b; clipState[n] = 'ready'; clipNotify(n); };
+    var bad = function () { if (done) return; done = true; clipFail(n); };
+    try { var pr = ctx.decodeAudioData(clipData[n].slice(0), ok, bad); if (pr && pr.then) pr.then(ok, bad); } catch (e) { bad(); }
+  }
+  function fetchClips() {
+    CLIP_NAMES.forEach(function (n) {
+      clipState[n] = 'loading';
+      fetch('audio/' + n + '.mp3').then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+        .then(function (ab) { clipData[n] = ab; clipState[n] = 'fetched'; decodeClip(n); })
+        .catch(function () { clipFail(n); });
+    });
+  }
+  function clipReady(n, ms) {   // resolves when the clip is decoded, has failed, or after ms
+    return new Promise(function (res) {
+      var st = clipState[n];
+      if (!st || st === 'ready' || st === 'failed') return res();
+      var t = setTimeout(res, ms);
+      (clipWaiters[n] = clipWaiters[n] || []).push(function () { clearTimeout(t); res(); });
+    });
+  }
+  // Play one clip and resolve when it ends (onended), with a timeout fallback.
+  function playClip(n) {
+    return new Promise(function (resolve) {
+      var buf = clipBuf[n], src, done = false, timer;
+      function fin(why) {
+        if (done) return; done = true; clearTimeout(timer);
+        if (curSrc === src) curSrc = null;
+        log({ t: 'clip-end', clip: n, why: why }); resolve(why);
+      }
+      try {
+        if (ctx.state !== 'running') ctx.resume();
+        src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus);
+        src.onended = function () { fin('end'); };
+        timer = setTimeout(function () { fin('timeout'); }, buf.duration * 1000 + 1500);
+        curSrc = src; log({ t: 'clip-start', clip: n, dur: Math.round(buf.duration * 1000) });
+        src.start(0);
+      } catch (e) { fin('throw'); }
+    });
+  }
+  function stopClip() { if (curSrc) { try { curSrc.stop(); } catch (e) { /* ignore */ } } }
+  fetchClips();
+  updateVoiceNote();
+
+  /* ---------- flow helpers ---------- */
+  var gen = 0, CANCEL = { cancelled: true };
+  var state = { open: false, target: null, pendingTap: null, idleTimer: 0 };
+  function check(g) { if (g !== gen) throw CANCEL; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms / SPEED); }); }
+  function untilVisible() {
+    return new Promise(function (r) {
+      if (!document.hidden) return r();
+      var f = function () { if (!document.hidden) { document.removeEventListener('visibilitychange', f); r(); } };
+      document.addEventListener('visibilitychange', f);
+    });
+  }
+  async function wait(ms, g) { await sleep(ms); check(g); await untilVisible(); check(g); }
+  async function say(text, g, opts) {
+    opts = opts || {};
+    for (var tries = 0; tries < 3; tries++) {
+      await untilVisible(); check(g);
+      var clip = opts.clip || null;
+      if (clip && ensureAudio()) { decodeClip(clip); await clipReady(clip, 2500); check(g); }
+      var via = clip && ctx && clipBuf[clip] ? 'clip' : 'tts';
+      log({ t: 'say', text: text, scene: T.scene, color: opts.color || null, clip: clip, via: via, rate: via === 'tts' ? (opts.rate || RATE) : null, prompt: opts.prompt || 0 });
+      var r = via === 'clip' ? await playClip(clip) : await speakOnce(text, opts);
+      check(g);
+      if (!document.hidden) return r;           // if the page was hidden mid-word, say it again when we're back
+    }
+  }
+  function caption(text, c) {
+    var el = document.getElementById('caption');
+    if (!text) { el.classList.remove('show'); return; }
+    el.innerHTML = (c ? '<span class="sw" style="background:' + c.body + '"></span>' : '') + text;
+    el.classList.add('show');
+  }
+  function retrigger(el, cls) { el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+  function jumper(c) { return els[c.id].querySelector('.jumper'); }
+  function setScene(name) { T.scene = name; log({ t: 'scene', name: name }); }
+  function setOpen(open) {
+    state.open = open;
+    stage.classList.toggle('open', open); stage.classList.toggle('closed', !open);
+    COLORS.forEach(function (c) { els[c.id].setAttribute('aria-disabled', open ? 'false' : 'true'); });
+    log({ t: open ? 'open' : 'close' });
+  }
+  function buzz() {
+    // NOTE: This is the web version. iPhone Safari web pages cannot vibrate (navigator.vibrate is unsupported on iOS),
+    // so wrong-tap feedback relies mainly on the 'uh-oh' sound and the shake animation. If this becomes a native app
+    // in future, add haptic/vibration feedback here (supported on both iOS and Android, e.g. UIImpactFeedbackGenerator /
+    // Vibrator API).
+    var supported = typeof navigator.vibrate === 'function';
+    try { if (supported) navigator.vibrate(120); } catch (e) { /* ignore */ }
+    log({ t: 'vibrate', supported: supported });
+  }
+  // Shuffle the on-screen order by moving the buttons in the DOM, so the visual order, the DOM order and the
+  // VoiceOver swipe order always match. Never repeats the previous order.
+  function rowOrder() { return Array.prototype.map.call(row.children, function (b) { return byId[b.dataset.color]; }); }
+  function shuffleRow() {
+    var prev = rowOrder().map(function (c) { return c.id; }).join(), next;
+    do { next = shuffle(COLORS); } while (next.map(function (c) { return c.id; }).join() === prev);
+    next.forEach(function (c) { row.appendChild(els[c.id]); });
+    log({ t: 'order', order: next.map(function (c) { return c.id; }) });
+  }
+  function setShrunkVisual() { stage.classList.remove('open'); stage.classList.add('closed'); log({ t: 'shrink' }); }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function resetChars() {
+    COLORS.forEach(function (c) {
+      var b = els[c.id]; b.className = 'char'; b.style.animationDelay = '';
+      b.querySelector('.jumper').className = 'jumper';
+    });
+  }
+  function show(id) {
+    ['start', 'game', 'again'].forEach(function (s) { document.getElementById(s).hidden = s !== id; });
+  }
+
+  /* ---------- scenes ---------- */
+  async function intro(g) {
+    setScene('intro'); stage.className = 'intro closed'; resetChars();
+    for (var i = 0; i < COLORS.length; i++) {
+      var c = COLORS[i], b = els[c.id];
+      b.classList.add('here', 'enter');
+      playSound(c.snd, c);                    // its own fun boing / squeak / pop as it pops in (from the old group scene)
+      log({ t: 'intro-sound', color: c.id, kind: c.snd });
+      await wait(700, g);
+      caption(c.zh, c);
+      retrigger(jumper(c), 'bounce');
+      await say(c.zh, g, { color: c.id, clip: c.id });
+      log({ t: 'intro', color: c.id });
+      await wait(450, g);
+      caption('');
+      b.classList.remove('enter'); b.classList.add('leave');
+      await wait(560, g);
+      b.classList.remove('here', 'leave'); jumper(c).classList.remove('bounce');
+    }
+  }
+  /* Group scene (all 7 in a row, random reading + jump) REMOVED at the parent's request (Oct 2026).
+     Kept here commented out for reference; full copy in /workspace/color-game-backups/index.backup-with-group-scene.html
+  async function group(g) {
+    setScene('group'); stage.className = 'closed'; resetChars();
+    COLORS.forEach(function (c, i) { els[c.id].style.animationDelay = (i * 0.09 / SPEED) + 's'; els[c.id].classList.add('pop-in'); });
+    await wait(1300, g);
+    var order = shuffle(COLORS);
+    for (var i = 0; i < order.length; i++) {
+      var c = order[i];
+      caption(c.zh, c);
+      await say(c.zh, g, { color: c.id, clip: c.id });
+      retrigger(jumper(c), 'jump');
+      playSound(c.snd, c);
+      log({ t: 'jump', color: c.id, scene: 'group' });
+      await wait(950, g);
+    }
+    caption('');
+    await wait(500, g);
+  }
+  */
+
+  function waitTap(g) {
+    return new Promise(function (resolve) {
+      state.pendingTap = resolve;
+      clearInterval(state.idleTimer);
+      state.idleTimer = setInterval(function () {      // gentle wiggle if nobody taps for a while (no words)
+        if (!state.open || g !== gen) return;
+        COLORS.forEach(function (c) { retrigger(jumper(c), 'wiggle'); });
+        log({ t: 'wiggle' });
+      }, 9000 / SPEED);
+    });
+  }
+  function onCharTap(c) {
+    if (!state.open || !state.pendingTap) { log({ t: 'tap', color: c.id, result: 'ignored' }); return; }
+    var correct = state.target && c.id === state.target.id;
+    log({ t: 'tap', color: c.id, result: correct ? 'correct' : 'wrong', target: state.target && state.target.id });
+    state.open = false;                       // close taps immediately: no double-firing
+    COLORS.forEach(function (x) { els[x.id].setAttribute('aria-disabled', 'true'); });
+    clearInterval(state.idleTimer);
+    var r = state.pendingTap; state.pendingTap = null;
+    r({ color: c, correct: correct });
+  }
+  async function quiz(g) {
+    setScene('quiz'); stage.className = 'closed'; resetChars();
+    shuffleRow();                             // new random left-to-right order every time the quiz starts
+    {   // all 7 pop in together for the quiz (after the intro)
+      rowOrder().forEach(function (c, i) { els[c.id].style.animationDelay = (i * 0.09 / SPEED) + 's'; els[c.id].classList.add('pop-in'); });
+      await wait(1100, g);
+    }
+    var remaining = COLORS.slice(), round = 0;
+    while (remaining.length) {
+      var c = remaining.splice(Math.floor(Math.random() * remaining.length), 1)[0];
+      round++; state.target = c;
+      if (round > 1) {                        // ...and again before every question, with a soft fade (characters are shrunk/closed)
+        row.classList.add('fading'); await wait(260, g);
+        shuffleRow(); void row.offsetWidth;
+        row.classList.remove('fading'); await wait(300, g);
+      }
+      log({ t: 'call', color: c.id, round: round });
+      caption(c.zh, c);
+      // Quiz prompt: the colour twice, slowly, with a short pause ("紅色……紅色"). Taps open only after the 2nd reading.
+      await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 1, clip: c.id + '-slow' });
+      await wait(QUIZ_GAP_MS, g);
+      await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 2, clip: c.id + '-slow' });
+      setOpen(true);
+      var res = await waitTap(g);
+      check(g);
+      if (res.correct) {
+        var b = els[c.id];
+        b.classList.add('hand-up');
+        retrigger(jumper(c), 'bounce');
+        playSound('happy', c);
+        caption('Hello！', c);
+        log({ t: 'hello', color: c.id });
+        await say('Hello', g, { pitch: 1.35, rate: 0.9, color: c.id, clip: 'hello' });
+        await wait(500, g);
+        b.classList.remove('hand-up');
+        setShrunkVisual();
+        await wait(700, g);
+      } else {
+        // Wrong tap: the tapped character gives a gentle "not quite" shake, a soft 「呃哦」 plays, everyone shrinks back.
+        retrigger(jumper(res.color), 'nope');
+        log({ t: 'nope', color: res.color.id });
+        buzz();
+        setShrunkVisual();
+        caption('');
+        await say('呃哦', g, { clip: 'uhoh', color: res.color.id, pitch: 1.2, rate: 0.9 });
+        await wait(600, g);
+        jumper(res.color).classList.remove('nope');
+      }
+      state.target = null;
+    }
+    caption('');
+  }
+  async function ending(g) {
+    setScene('end'); setShrunkVisual();
+    await wait(500, g);
+    COLORS.forEach(function (c) { els[c.id].classList.add('waving'); });
+    caption('Byebye！');
+    playSound('bye');
+    log({ t: 'byebye' });
+    await say('Bye bye', g, { pitch: 1.3, rate: 0.85, clip: 'byebye' });
+    await wait(1400, g);
+    COLORS.forEach(function (c) { els[c.id].classList.remove('waving'); });
+    caption('');
+  }
+
+  var wakeLock = null;
+  function keepAwake(on) {
+    try {
+      if (on && navigator.wakeLock && !wakeLock) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; w.addEventListener('release', function () { wakeLock = null; }); }).catch(function () {});
+      if (!on && wakeLock) { wakeLock.release(); wakeLock = null; }
+    } catch (e) { /* ignore */ }
+  }
+
+  async function runGame(skipIntro) {
+    var g = ++gen;
+    state.skipIntro = !!skipIntro; state.open = false;
+    log({ t: 'game', skipIntro: !!skipIntro });
+    show('game'); caption(''); resetChars(); stage.className = 'closed';
+    keepAwake(true);
+    try { document.getElementById('gameTitle').focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    try {
+      await wait(1300, g);                      // let VoiceOver finish reading before the game talks
+      if (!skipIntro) await intro(g);           // intro, then straight into the quiz (group scene removed)
+      await quiz(g);
+      await ending(g);
+      showAgain();
+    } catch (e) {
+      if (e !== CANCEL) { console.error(e); showAgain(); }
+    }
+  }
+  function showAgain() {
+    gen++; state.open = false; keepAwake(false);
+    setScene('parent'); show('again');
+    setTimeout(function () { try { document.getElementById('againTitle').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+  }
+
+  /* ---------- parent controls ---------- */
+  function begin(skipIntro) {
+    unlockAudio(); unlockSpeech();               // must run inside the tap (iOS)
+    playSound('start');
+    runGame(skipIntro);
+  }
+  T.begin = function (skipIntro) { begin(!!skipIntro); };   // test hook only (no on-screen skip option): begin(true) = quiz without intro
+  var lock = 0;
+  function guarded(fn) { return function (e) { var now = Date.now(); if (now - lock < 700) return; lock = now; fn(e); }; }
+  document.getElementById('startBtn').addEventListener('click', guarded(function () { begin(false); }));
+  /* ---------- parent control: hold 1.5 s, or tap -> confirm dialog (same pattern as Say & Go / Tap Tap Music) ---------- */
+  var HOLD_MS = 1500, CLICK_DEDUPE_MS = 700;
+  function now() { return performance.now(); }
+  function focusEl(el) { setTimeout(function () { try { el.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30); }
+  var holdCancels = [];
+  function cancelAllHolds() { holdCancels.forEach(function (f) { f(); }); }
+  function parentControl(btn, onHold, onTap) {
+    var holdTimer = 0, holdRaf = 0, holdStart = 0, holding = false, holdDone = false, suppressClickUntil = 0;
+    function setRing(p) { btn.style.setProperty('--p', p.toFixed(3)); }
+    function tick() { if (!holding) return; setRing(Math.min(1, (now() - holdStart) / HOLD_MS)); holdRaf = requestAnimationFrame(tick); }
+    function cancel() { holding = false; clearTimeout(holdTimer); cancelAnimationFrame(holdRaf); setRing(0); }
+    holdCancels.push(cancel);
+    btn.addEventListener('pointerdown', function (e) {
+      e.stopPropagation();
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      ensureAudio();
+      holding = true; holdDone = false; holdStart = now();
+      try { btn.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      holdTimer = setTimeout(function () { holding = false; holdDone = true; suppressClickUntil = now() + CLICK_DEDUPE_MS; setRing(0); log({ t: 'again-hold' }); onHold(); }, HOLD_MS);
+      holdRaf = requestAnimationFrame(tick);
+    });
+    btn.addEventListener('pointerup', function (e) {
+      e.stopPropagation();
+      if (!holding) return;
+      cancel(); suppressClickUntil = now() + CLICK_DEDUPE_MS;
+      if (!holdDone) onTap();
+    });
+    btn.addEventListener('pointercancel', cancel);
+    btn.addEventListener('touchstart', function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    btn.addEventListener('touchend', function (e) { if (e.cancelable) e.preventDefault(); }, { passive: false });
+    btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    btn.addEventListener('click', function (e) {   // keyboard / VoiceOver double-tap opens the confirm dialog
+      e.stopPropagation();
+      if (now() < suppressClickUntil) return;
+      onTap();
+    });
+  }
+  function makeDialog(overlay, yes, no, behind, isAllowed) {
+    var openedAt = 0;
+    function open() {
+      if (!isAllowed() || !overlay.hidden) return;
+      openedAt = now(); overlay.hidden = false; log({ t: 'again-dialog', open: true });
+      behind.forEach(function (el) { el.setAttribute('aria-hidden', 'true'); el.inert = true; });
+      focusEl(yes);
+    }
+    function close(silent) {
+      if (overlay.hidden) return;
+      overlay.hidden = true; log({ t: 'again-dialog', open: false });
+      behind.forEach(function (el) { el.removeAttribute('aria-hidden'); el.inert = false; });
+      if (!silent) focusEl(behind[0]);
+    }
+    no.addEventListener('click', function () { close(false); });
+    overlay.addEventListener('pointerdown', function (e) { if (e.target !== overlay) return; e.preventDefault(); if (now() - openedAt < 350) return; close(false); });
+    overlay.addEventListener('touchstart', function (e) { if (e.target === overlay && e.cancelable) e.preventDefault(); }, { passive: false });
+    overlay.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      else if (e.key === 'Tab') { e.preventDefault(); focusEl(document.activeElement === yes ? no : yes); }
+    });
+    return { open: open, close: close };
+  }
+  var againBtn = document.getElementById('again-btn'), againConfirm = document.getElementById('again-confirm');
+  var againDialog = makeDialog(againConfirm, document.getElementById('again-yes'), document.getElementById('again-no'),
+    [document.getElementById('againTitle'), againBtn, document.getElementById('doneBtn')], function () { return T.scene === 'parent'; });
+  function playAgain() {                       // only via 「好，再玩過」 or the 1.5 s hold; always from the solo intro
+    if (T.scene !== 'parent') return;
+    cancelAllHolds(); againDialog.close(true);
+    log({ t: 'again' });
+    begin(false);
+  }
+  document.getElementById('again-yes').addEventListener('click', function () { playAgain(); });
+  parentControl(againBtn, playAgain, againDialog.open);
+
+  document.getElementById('doneBtn').addEventListener('click', guarded(function () {
+    setScene('start'); show('start'); log({ t: 'done' });
+    setTimeout(function () { try { document.getElementById('title').setAttribute('tabindex', '-1'); document.getElementById('title').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+  }));
+
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { stopClip(); try { if (synth) synth.cancel(); } catch (e) { /* ignore */ } }
+    else if (ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { /* ignore */ } }
+  });
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+    // When a new version takes over, reload once — but only while the parent is on the start screen.
+    var hadController = !!navigator.serviceWorker.controller, reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (hadController && !reloaded && T.scene === 'start') { reloaded = true; location.reload(); }
+    });
+  }
+})();
+</script>
+</body>
+</html>
