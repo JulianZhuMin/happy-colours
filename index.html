@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Happy Colors 快樂認識</title>
-<meta name="description" content="快樂認識 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
+<title>Happy Colors 快樂認色</title>
+<meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="5">
+<meta name="app-version" content="6">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="快樂認識">
+<meta name="apple-mobile-web-app-title" content="快樂認色">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -154,7 +154,7 @@
   <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
 
   <section id="start" class="screen parent" aria-labelledby="title">
-    <h1 id="title" class="app-name"><span class="zh">快樂認識</span><span class="en" lang="en">Happy Colors</span></h1>
+    <h1 id="title" class="app-name"><span class="zh">快樂認色</span><span class="en" lang="en">Happy Colors</span></h1>
     <p class="sub">同小朋友一齊認顏色</p>
     <div class="mini" id="startMini" aria-hidden="true"></div>
     <button id="startBtn" class="big-btn" type="button" aria-label="開始玩">開始</button>
@@ -199,8 +199,8 @@
 <script>
 (function () {
   'use strict';
-  var APP_NAME = { zh: '快樂認識', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '5';   // bump together with CACHE in sw.js
+  var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
+  var APP_VERSION = '6';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);

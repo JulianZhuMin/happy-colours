@@ -1,7 +1,7 @@
 {
-  "name": "Happy Colors 快樂認識",
-  "short_name": "快樂認識",
-  "description": "快樂認識 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲",
+  "name": "Happy Colors 快樂認色",
+  "short_name": "快樂認色",
+  "description": "快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲",
   "lang": "zh-HK",
   "start_url": "./index.html",
   "scope": "./",
