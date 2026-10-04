@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="6">
+<meta name="app-version" content="7">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -200,7 +200,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '6';   // bump together with CACHE in sw.js
+  var APP_VERSION = '7';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -306,6 +306,19 @@
       tone('sine', t + 0.36, 0.5, 1318.5, 0, 0.18);
     } else if (kind === 'bye') {       // gentle "da-da-da-daa"
       [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
+    } else if (kind === 'buzzer') {    // wrong tap: low, soft game-show "嗡" buzzer sliding 220 Hz -> 90 Hz over ~0.55 s
+      var dur = BUZZER_MS / 1000, bo = ctx.createOscillator(), bo2 = ctx.createOscillator(), bmix = ctx.createGain(),
+          lp = ctx.createBiquadFilter(), bg = ctx.createGain();
+      bo.type = 'sawtooth'; bo2.type = 'square';
+      bo.frequency.setValueAtTime(220, t); bo.frequency.exponentialRampToValueAtTime(90, t + dur);
+      bo2.frequency.setValueAtTime(222, t); bo2.frequency.exponentialRampToValueAtTime(91, t + dur);   // slight detune = buzzy, not shrill
+      bmix.gain.value = 0.5;
+      lp.type = 'lowpass'; lp.Q.value = 0.7;                                                            // soften the edges for little ears
+      lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(650, t + dur);   // keeps harmonics so phone speakers still play the low end
+      bg.gain.setValueAtTime(0.0001, t); bg.gain.exponentialRampToValueAtTime(0.3, t + 0.04);           // soft attack
+      bg.gain.setValueAtTime(0.3, t + dur - 0.2); bg.gain.linearRampToValueAtTime(0.0001, t + dur);       // gentle fade-out, deep tail still heard
+      bo.connect(lp); bo2.connect(bmix); bmix.connect(lp); lp.connect(bg); bg.connect(master);
+      bo.start(t); bo2.start(t); bo.stop(t + dur + 0.03); bo2.stop(t + dur + 0.03);
     } else if (kind === 'start') {
       [392, 523.25, 659.25].forEach(function (fr, i) { tone('triangle', t + i * 0.08, 0.25, fr, 0, 0.25); });
     }
@@ -315,6 +328,7 @@
   var RATE = 0.85;          // fallback TTS normal rate (intro, Hello, Byebye)
   var QUIZ_RATE = 0.7;      // quiz prompt: slower, said twice
   var QUIZ_GAP_MS = 900;    // pause between the two quiz readings
+  var BUZZER_MS = 550;      // length of the wrong-tap buzzer (the retry prompt starts when it ends)
   var synth = window.speechSynthesis || null;
   var voice = null, keep = [];
   var NOVELTY = /(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|albert|fred|junior|kathy|ralph)/i;
@@ -458,7 +472,7 @@
       var clip = opts.clip || null;
       if (clip && ensureAudio()) { decodeClip(clip); await clipReady(clip, 2500); check(g); }
       var via = clip && ctx && clipBuf[clip] ? 'clip' : 'tts';
-      log({ t: 'say', text: text, scene: T.scene, color: opts.color || null, clip: clip, via: via, rate: via === 'tts' ? (opts.rate || RATE) : null, prompt: opts.prompt || 0 });
+      log({ t: 'say', text: text, scene: T.scene, color: opts.color || null, clip: clip, via: via, rate: via === 'tts' ? (opts.rate || RATE) : null, prompt: opts.prompt || 0, attempt: opts.attempt || 0 });
       var r = via === 'clip' ? await playClip(clip) : await speakOnce(text, opts);
       check(g);
       if (!document.hidden) return r;           // if the page was hidden mid-word, say it again when we're back
@@ -484,6 +498,7 @@
     // so wrong-tap feedback relies mainly on the 'uh-oh' sound and the shake animation. If this becomes a native app
     // in future, add haptic/vibration feedback here (supported on both iOS and Android, e.g. UIImpactFeedbackGenerator /
     // Vibrator API).
+    playSound('buzzer');                     // low descending buzzer (Web Audio, already unlocked by the 開始 tap)
     var supported = typeof navigator.vibrate === 'function';
     try { if (supported) navigator.vibrate(120); } catch (e) { /* ignore */ }
     log({ t: 'vibrate', supported: supported });
@@ -588,36 +603,42 @@
         row.classList.remove('fading'); await wait(300, g);
       }
       log({ t: 'call', color: c.id, round: round });
-      caption(c.zh, c);
-      // Quiz prompt: the colour twice, slowly, with a short pause ("紅色……紅色"). Taps open only after the 2nd reading.
-      await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 1, clip: c.id + '-slow' });
-      await wait(QUIZ_GAP_MS, g);
-      await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 2, clip: c.id + '-slow' });
-      setOpen(true);
-      var res = await waitTap(g);
-      check(g);
-      if (res.correct) {
-        var b = els[c.id];
-        b.classList.add('hand-up');
-        retrigger(jumper(c), 'bounce');
-        playSound('happy', c);
-        caption('Hello！', c);
-        log({ t: 'hello', color: c.id });
-        await say('Hello', g, { pitch: 1.35, rate: 0.9, color: c.id, clip: 'hello' });
-        await wait(500, g);
-        b.classList.remove('hand-up');
-        setShrunkVisual();
-        await wait(700, g);
-      } else {
-        // Wrong tap: the tapped character gives a gentle "not quite" shake, a soft 「呃哦」 plays, everyone shrinks back.
-        retrigger(jumper(res.color), 'nope');
-        log({ t: 'nope', color: res.color.id });
+      // Up to 2 tries per colour: 1st wrong tap -> shake + buzzer -> the SAME colour is asked again (same positions,
+      // no fade/reshuffle); 2nd wrong tap -> shake + buzzer -> next question. A right tap on either try = normal correct.
+      for (var attempt = 1; attempt <= 2; attempt++) {
+        log({ t: 'ask', color: c.id, round: round, attempt: attempt });
+        if (attempt > 1) await wait(BUZZER_MS, g);   // let the buzzer finish so the colour word is heard clearly
+        caption(c.zh, c);
+        // Quiz prompt: the colour twice, slowly, with a short pause ("紅色……紅色"). Taps open only after the 2nd reading.
+        await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 1, clip: c.id + '-slow', attempt: attempt });
+        await wait(QUIZ_GAP_MS, g);
+        await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, prompt: 2, clip: c.id + '-slow', attempt: attempt });
+        setOpen(true);
+        var res = await waitTap(g);
+        check(g);
+        if (res.correct) {
+          var b = els[c.id];
+          b.classList.add('hand-up');
+          retrigger(jumper(c), 'bounce');
+          playSound('happy', c);
+          caption('Hello！', c);
+          log({ t: 'hello', color: c.id });
+          await say('Hello', g, { pitch: 1.35, rate: 0.9, color: c.id, clip: 'hello' });
+          await wait(500, g);
+          b.classList.remove('hand-up');
+          setShrunkVisual();
+          await wait(700, g);
+          break;
+        }
+        // Wrong tap: the tapped character gives a gentle "not quite" shake with a low buzzer and everyone shrinks back
+        // (v7: no 「呃哦」 clip and no extra pause).
+        var wj = jumper(res.color);
+        retrigger(wj, 'nope');
+        log({ t: 'nope', color: res.color.id, attempt: attempt });
         buzz();
         setShrunkVisual();
         caption('');
-        await say('呃哦', g, { clip: 'uhoh', color: res.color.id, pitch: 1.2, rate: 0.9 });
-        await wait(600, g);
-        jumper(res.color).classList.remove('nope');
+        setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
       }
       state.target = null;
     }
