@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="8">
+<meta name="app-version" content="9">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -138,6 +138,17 @@
     .parent { padding-bottom: 70px; }
   }
 
+  /* v9 hint: the right character grows a little and steps forward, in front of the others (stands still) */
+  #row .char.hint { z-index: 3; }
+  #row .char.hint .scaler { transform: translateY(9%) scale(1.24); }
+  #row .char.hint .jumper { filter: drop-shadow(0 10px 10px rgba(0,0,0,.25)); }
+  #row .char.gone { animation: goneOut calc(.45s / var(--spd)) ease-in forwards; pointer-events: none; }
+  @keyframes goneOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6%) scale(.35); } }
+  #finger { position: fixed; left: 0; top: 0; width: clamp(72px, 19vh, 140px); height: auto; z-index: 6; pointer-events: none; opacity: 0;
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,.25)); }
+  #finger[hidden] { display: none; }
+  #finger svg { display: block; width: 100%; height: auto; overflow: visible; }
+
   /* correct-tap bubbles: purely decorative, never catch taps, hidden from VoiceOver */
   #bubbles { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
   .bubble { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; opacity: 0; will-change: transform, opacity;
@@ -153,7 +164,9 @@
     @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
     .jumper.nope { animation: nopeFade calc(.6s / var(--spd)) ease-in-out 1; }   /* no shake: soft fade instead */
     @keyframes nopeFade { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
-    .jumper.nope .arm-l, .jumper.nope .arm-r { animation: none; }               /* no hand waving either */
+    .jumper.nope .arm-l, .jumper.nope .arm-r { animation: none; }
+    #row .char.gone { animation: goneFade calc(.45s / var(--spd)) ease forwards; }   /* just fades, no shrinking */
+    @keyframes goneFade { to { opacity: 0; } }               /* no hand waving either */
     .jumper.bounce, .jumper.jump, .jumper.wiggle { animation: none; filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #ffb300); }
     .char .scaler, .arm, #caption { transition: none; }
     .char.waving .arm-l { animation: none; transform: rotate(60deg); }
@@ -211,11 +224,22 @@
   </div>
 
 <div id="bubbles" aria-hidden="true"></div>
+<!-- v9: original cartoon pointing hand (white glove), used to "tap" the hinted character if nobody does -->
+<div id="finger" hidden aria-hidden="true"><svg focusable="false" viewBox="0 0 100 125" xmlns="http://www.w3.org/2000/svg">
+  <g stroke="#3b3b4f" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" fill="#ffffff">
+    <rect x="22" y="2" width="18" height="62" rx="9"/>
+    <path d="M24 52 C 16 52 12 60 12 70 L 12 88 C 12 102 24 110 40 110 L 64 110 C 80 110 88 100 88 86 L 88 64 C 88 56 82 52 76 54 C 74 46 66 44 61 49 C 58 42 50 41 46 47 L 40 47 L 40 56"/>
+    <path d="M14 70 C 6 66 2 72 6 78 L 14 86" />
+    <path d="M46 47 L 46 64 M61 49 L 61 64 M76 54 L 76 66" fill="none"/>
+    <rect x="30" y="106" width="52" height="16" rx="6" fill="#ffd54f"/>
+  </g>
+  <ellipse cx="31" cy="12" rx="4" ry="6" fill="#ffffff" opacity=".9"/>
+</svg></div>
 <script>
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '8';   // bump together with CACHE in sw.js
+  var APP_VERSION = '9';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -486,7 +510,7 @@
 
   /* ---------- pre-recorded voice clips (audio/*.mp3, made with edge-tts neural voices) ---------- */
   var CLIP_NAMES = [];
-  COLORS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-slow'); });
+  COLORS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-slow', c.id + '-me'); });   // v9: '-me' = hint 「我係X色」
   CLIP_NAMES.push('yeah', 'byebye');      // v8: 'yeah' replaces 'hello'; 'uhoh' no longer used (files kept, not loaded)
   var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
   T.clips = clipState;
@@ -582,7 +606,7 @@
   }
   function buzz() {
     // NOTE: This is the web version. iPhone Safari web pages cannot vibrate (navigator.vibrate is unsupported on iOS),
-    // so wrong-tap feedback relies mainly on the 'uh-oh' sound and the shake animation. If this becomes a native app
+    // so wrong-tap feedback relies mainly on the buzzer sound and the shake animation. If this becomes a native app
     // in future, add haptic/vibration feedback here (supported on both iOS and Android, e.g. UIImpactFeedbackGenerator /
     // Vibrator API).
     playSound('buzzer');                     // low descending buzzer (Web Audio, already unlocked by the 開始 tap)
@@ -603,7 +627,7 @@
   function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function resetChars() {
     COLORS.forEach(function (c) {
-      var b = els[c.id]; b.className = 'char'; b.style.animationDelay = '';
+      var b = els[c.id]; b.className = 'char'; b.style.animationDelay = ''; b.style.visibility = '';
       b.querySelector('.jumper').className = 'jumper';
     });
   }
@@ -665,6 +689,8 @@
   }
   function onCharTap(c) {
     if (!state.open || !state.pendingTap) { log({ t: 'tap', color: c.id, result: 'ignored' }); return; }
+    if (state.hint && c.id !== state.hint.id) { log({ t: 'tap', color: c.id, result: 'ignored', why: 'hint' }); return; }   // no buzzer
+    clearTimeout(state.hintTimer);
     var correct = state.target && c.id === state.target.id;
     log({ t: 'tap', color: c.id, result: correct ? 'correct' : 'wrong', target: state.target && state.target.id });
     state.open = false;                       // close taps immediately: no double-firing
@@ -686,12 +712,13 @@
       round++; state.target = c;
       if (round > 1) {                        // ...and again before every question, with a soft fade (characters are shrunk/closed)
         row.classList.add('fading'); await wait(260, g);
+        restoreGone();                        // a character the finger "tapped away" comes back with the others
         shuffleRow(); void row.offsetWidth;
         row.classList.remove('fading'); await wait(300, g);
       }
       log({ t: 'call', color: c.id, round: round });
       // Up to 2 tries per colour: 1st wrong tap -> shake + buzzer -> the SAME colour is asked again (same positions,
-      // no fade/reshuffle); 2nd wrong tap -> shake + buzzer -> next question. A right tap on either try = normal correct.
+      // no fade/reshuffle); 2nd wrong tap -> shake + buzzer -> hint (see hint()). A right tap on either try = normal correct.
       for (var attempt = 1; attempt <= 2; attempt++) {
         log({ t: 'ask', color: c.id, round: round, attempt: attempt });
         if (attempt > 1) await wait(BUZZER_MS, g);   // let the buzzer finish so the colour word is heard clearly
@@ -703,22 +730,7 @@
         setOpen(true);
         var res = await waitTap(g);
         check(g);
-        if (res.correct) {
-          var b = els[c.id];
-          b.classList.add('hand-up');
-          retrigger(jumper(c), 'bounce');
-          // v8 celebration (~1.7 s): an excited 「Yeah!」 + hand-claps + "woo-hoo" whistle, and bubbles in this character's colour
-          playSound('cheer', c);
-          bubbles(c);
-          caption('Yeah！', c);
-          log({ t: 'yeah', color: c.id });
-          await say('Yeah', g, { pitch: 1.4, rate: 1, color: c.id, clip: 'yeah' });
-          await wait(1250, g);                // let the claps + whistle finish (they end ~1.6 s after the tap)
-          b.classList.remove('hand-up');
-          setShrunkVisual();
-          await wait(700, g);
-          break;
-        }
+        if (res.correct) { await celebrate(c, g); break; }
         // Wrong tap: the tapped character shakes its head and does a "no-no" side-to-side hand wave (never the hand-up pose),
         // with the low buzzer; everyone shrinks back. No spoken words at all (no 「呃哦」), no extra pause.
         var wj = jumper(res.color);
@@ -728,12 +740,119 @@
         setShrunkVisual();
         caption('');
         setTimeout(function (el) { el.classList.remove('nope'); }.bind(null, wj), 700 / SPEED);
+        if (attempt === 2) await hint(c, g);   // v9: after the 2nd wrong tap the right character shows itself
       }
       state.target = null;
     }
     caption('');
   }
+  // v8 celebration (~1.7 s): an excited 「Yeah!」 + hand-claps + "woo-hoo" whistle, and bubbles in this character's colour
+  async function celebrate(c, g) {
+    var b = els[c.id];
+    b.classList.add('hand-up');
+    retrigger(jumper(c), 'bounce');
+    playSound('cheer', c);
+    bubbles(c);
+    caption('Yeah！', c);
+    log({ t: 'yeah', color: c.id });
+    await say('Yeah', g, { pitch: 1.4, rate: 1, color: c.id, clip: 'yeah' });
+    await wait(1250, g);                // let the claps + whistle finish (they end ~1.6 s after the tap)
+    b.classList.remove('hand-up', 'hint');
+    setShrunkVisual();
+    await wait(700, g);
+  }
+
+  // v9 hint, after the 2nd wrong tap on a colour: the right character grows a little, steps forward and says 「我係X色」,
+  // then stands still and waits (only it can be tapped; taps on the others are silently ignored).
+  //  - tapped within 7 s -> the normal correct celebration, then the next question;
+  //  - no tap in 7 s     -> a cartoon finger comes and taps it, it fades/shrinks away (no celebration, no words),
+  //                         the finger leaves and the game moves on. It comes back with the others for the next question.
+  var HINT_WAIT_MS = 7000;
+  async function hint(c, g) {
+    await wait(600, g);                       // let the buzzer + head-shake finish first
+    var b = els[c.id];
+    b.classList.add('hint');
+    log({ t: 'hint', color: c.id });
+    caption('我係' + c.zh, c);
+    await say('我係' + c.zh, g, { color: c.id, clip: c.id + '-me', hint: true });
+    state.hint = c; state.open = true;
+    b.setAttribute('aria-disabled', 'false');
+    log({ t: 'hint-open', color: c.id });
+    var res = await waitHintTap(g, HINT_WAIT_MS);
+    state.hint = null;
+    check(g);
+    if (!res.timeout) { await celebrate(c, g); return; }
+    log({ t: 'hint-timeout', color: c.id });
+    caption('');
+    await fingerTap(c, g);
+  }
+  function waitHintTap(g, ms) {             // like waitTap, but no idle wiggle and it gives up after `ms`
+    return new Promise(function (resolve) {
+      state.pendingTap = resolve;
+      clearInterval(state.idleTimer);
+      clearTimeout(state.hintTimer);
+      state.hintTimer = setTimeout(function () {
+        if (g !== gen || state.pendingTap !== resolve) return;
+        state.pendingTap = null; state.open = false;
+        COLORS.forEach(function (x) { els[x.id].setAttribute('aria-disabled', 'true'); });
+        resolve({ timeout: true });
+      }, ms / SPEED);
+    });
+  }
+  var fingerEl = document.getElementById('finger');
+  function play(el, kf, ms, easing) {
+    return new Promise(function (res) {
+      var done = false, fin = function () { if (!done) { done = true; res(); } };
+      if (el.animate) { var a = el.animate(kf, { duration: ms / SPEED, fill: 'forwards', easing: easing || 'ease-in-out' }); a.onfinish = fin; a.oncancel = fin; }
+      setTimeout(fin, ms / SPEED + 250);
+    });
+  }
+  async function fingerTap(c, g) {
+    var b = els[c.id], r = b.getBoundingClientRect(), reduce = reduceMQ.matches;
+    var fw = fingerEl.getBoundingClientRect().width || 90;
+    var tx = r.left + r.width * 0.5, ty = r.top + r.height * 0.5;        // where the fingertip presses
+    var x1 = tx - fw * 0.31, y1 = ty - fw * 0.02;                         // fingertip is near the top-left of the drawing
+    function at(x, y, sc) { return 'translate(' + x + 'px,' + y + 'px) scale(' + (sc || 1) + ')'; }
+    fingerEl.getAnimations && fingerEl.getAnimations().forEach(function (a) { a.cancel(); });
+    fingerEl.hidden = false;
+    log({ t: 'finger', color: c.id, reduce: reduce });
+    if (reduce) {                             // reduced motion: the finger just appears on it, the character fades
+      await play(fingerEl, [{ transform: at(x1, y1), opacity: 0 }, { transform: at(x1, y1), opacity: 1 }], 250);
+      check(g); await wait(350, g);
+    } else {
+      var x0 = Math.min(innerWidth - fw * 0.6, tx + innerWidth * 0.25), y0 = innerHeight + 20;
+      await play(fingerEl, [{ transform: at(x0, y0), opacity: 0 }, { transform: at(x0, y0), opacity: 1, offset: 0.15 },
+                            { transform: at(x1 + 10, y1 + 34), opacity: 1 }], 900, 'cubic-bezier(.35,.7,.4,1)');
+      check(g);
+      await play(fingerEl, [{ transform: at(x1 + 10, y1 + 34) }, { transform: at(x1, y1, 0.9) }], 160, 'ease-in');   // press
+      check(g);
+    }
+    log({ t: 'finger-tap', color: c.id });
+    b.setAttribute('aria-disabled', 'true');
+    b.classList.add('gone');                  // the character simply disappears (fade / shrink out), nothing else
+    if (!reduce) await play(fingerEl, [{ transform: at(x1, y1, 0.9) }, { transform: at(x1 + 6, y1 + 20) }], 180, 'ease-out');
+    await wait(450, g);
+    b.style.visibility = 'hidden';            // also out of the VoiceOver order until the next question
+    var fr = fingerEl.getBoundingClientRect();
+    if (reduce) await play(fingerEl, [{ transform: at(fr.left, fr.top), opacity: 1 }, { transform: at(fr.left, fr.top), opacity: 0 }], 250);
+    else await play(fingerEl, [{ transform: at(fr.left, fr.top), opacity: 1 }, { transform: at(fr.left + 60, innerHeight + 20), opacity: 0 }], 600, 'ease-in');
+    fingerEl.hidden = true;
+    log({ t: 'finger-gone', color: c.id });
+    check(g);
+    await wait(300, g);
+  }
+  function restoreGone() {
+    COLORS.forEach(function (x) {
+      var b = els[x.id];
+      if (b.classList.contains('gone') || b.classList.contains('hint')) { b.classList.remove('gone', 'hint'); b.style.visibility = ''; log({ t: 'back', color: x.id }); }
+    });
+  }
+
   async function ending(g) {
+    if (COLORS.some(function (x) { return els[x.id].classList.contains('gone'); })) {   // last question ended with the finger: bring it back to wave
+      restoreGone();                        // (its pop-in animation replays, so it pops back in)
+      await wait(300, g);
+    }
     setScene('end'); setShrunkVisual();
     await wait(500, g);
     COLORS.forEach(function (c) { els[c.id].classList.add('waving'); });
@@ -756,7 +875,8 @@
 
   async function runGame(skipIntro) {
     var g = ++gen;
-    state.skipIntro = !!skipIntro; state.open = false;
+    state.skipIntro = !!skipIntro; state.open = false; state.hint = null; clearTimeout(state.hintTimer);
+    fingerEl.hidden = true;
     log({ t: 'game', skipIntro: !!skipIntro });
     show('game'); caption(''); resetChars(); stage.className = 'closed';
     keepAwake(true);
@@ -772,7 +892,7 @@
     }
   }
   function showAgain() {
-    gen++; state.open = false; keepAwake(false);
+    gen++; state.open = false; state.hint = null; clearTimeout(state.hintTimer); fingerEl.hidden = true; keepAwake(false);
     setScene('parent'); show('again');
     setTimeout(function () { try { document.getElementById('againTitle').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
   }
