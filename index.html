@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="7">
+<meta name="app-version" content="8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -112,6 +112,11 @@
   @keyframes wiggle { 0%,100% { transform: none; } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
   /* wrong tap: gentle "not quite" head-shake with a soft dim (~0.6 s) */
   .jumper.nope { animation: nope calc(.6s / var(--spd)) ease-in-out 1; }
+  /* wrong tap "no-no" wave: both hands come up and sway side to side together (not the hand-up pose, not the bye wave) */
+  .jumper.nope .arm-l { animation: noL calc(.6s / var(--spd)) ease-in-out 1; }
+  .jumper.nope .arm-r { animation: noR calc(.6s / var(--spd)) ease-in-out 1; }
+  @keyframes noL { 0%,100% { transform: rotate(-28deg); } 15%,50% { transform: rotate(58deg); } 32%,68% { transform: rotate(22deg); } 85% { transform: rotate(50deg); } }
+  @keyframes noR { 0%,100% { transform: rotate(28deg); } 15%,50% { transform: rotate(-22deg); } 32%,68% { transform: rotate(-58deg); } 85% { transform: rotate(-30deg); } }
   @keyframes nope { 0%,100% { transform: none; filter: none; } 15% { transform: translateX(-5%) rotate(-5deg); filter: brightness(.9) saturate(.85); }
     35% { transform: translateX(4%) rotate(4deg); } 55% { transform: translateX(-3%) rotate(-3deg); filter: brightness(.9) saturate(.85); }
     75% { transform: translateX(2%) rotate(1.5deg); } }
@@ -133,6 +138,14 @@
     .parent { padding-bottom: 70px; }
   }
 
+  /* correct-tap bubbles: purely decorative, never catch taps, hidden from VoiceOver */
+  #bubbles { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+  .bubble { position: absolute; left: 0; top: 0; border-radius: 50%; pointer-events: none; opacity: 0; will-change: transform, opacity;
+    border: 2px solid var(--rim); box-shadow: 0 0 8px var(--glow), inset 0 0 10px var(--glow);
+    background: radial-gradient(circle at 32% 28%, rgba(255,255,255,.95) 0 7%, rgba(255,255,255,0) 18%),
+                radial-gradient(circle at 70% 75%, rgba(255,255,255,.5) 0 4%, rgba(255,255,255,0) 10%),
+                radial-gradient(circle at 50% 50%, var(--in) 0 55%, var(--edge) 100%); }
+
   @media (prefers-reduced-motion: reduce) {
     .char.enter { animation: fade calc(.4s / var(--spd)) ease both; }
     .char.leave { animation: fade calc(.4s / var(--spd)) ease reverse both; }
@@ -140,6 +153,7 @@
     @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
     .jumper.nope { animation: nopeFade calc(.6s / var(--spd)) ease-in-out 1; }   /* no shake: soft fade instead */
     @keyframes nopeFade { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+    .jumper.nope .arm-l, .jumper.nope .arm-r { animation: none; }               /* no hand waving either */
     .jumper.bounce, .jumper.jump, .jumper.wiggle { animation: none; filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 4px #ffb300); }
     .char .scaler, .arm, #caption { transition: none; }
     .char.waving .arm-l { animation: none; transform: rotate(60deg); }
@@ -196,11 +210,12 @@
     <span>打橫部機，會更好玩！</span>
   </div>
 
+<div id="bubbles" aria-hidden="true"></div>
 <script>
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '7';   // bump together with CACHE in sw.js
+  var APP_VERSION = '8';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -258,8 +273,50 @@
     document.getElementById(id).innerHTML = COLORS.map(charSVG).join('');
   });
 
+  /* ---------- correct-tap bubbles (soap-bubble circles in the tapped character's colour) ---------- */
+  var bubbleLayer = document.getElementById('bubbles');
+  function rgba(c3, a) { return 'rgba(' + c3[0] + ',' + c3[1] + ',' + c3[2] + ',' + a + ')'; }
+  function bubbleTint(c) {
+    if (c.id === 'white') return { rim: 'rgba(93,104,117,.7)', glow: 'rgba(93,104,117,.25)', in: 'rgba(255,255,255,.35)', edge: 'rgba(255,255,255,.85)' };
+    var h = c.id === 'black' ? '#4a4a4a' : c.body;   // black -> dark grey so it shows on the cream background
+    var c3 = [1, 3, 5].map(function (i) { return parseInt(h.substr(i, 2), 16); });
+    return { rim: rgba(c3, .9), glow: rgba(c3, .4), in: rgba(c3, .3), edge: rgba(c3, .7) };
+  }
+  function bubbles(c) {
+    var reduce = reduceMQ.matches, n = reduce ? 5 : 14, longest = 0, W = innerWidth, H = innerHeight, tint = bubbleTint(c);
+    var r = els[c.id].getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.4;
+    function rnd(a, b) { return a + Math.random() * (b - a); }
+    for (var i = 0; i < n; i++) {
+      var el = document.createElement('div'), sz = Math.round(rnd(0.08, 0.17) * Math.min(W, H) + 18);
+      el.className = 'bubble';
+      el.style.width = el.style.height = sz + 'px';
+      el.style.setProperty('--rim', tint.rim); el.style.setProperty('--glow', tint.glow);
+      el.style.setProperty('--in', tint.in); el.style.setProperty('--edge', tint.edge);
+      bubbleLayer.appendChild(el);
+      var dur = rnd(1500, 2200) / SPEED, delay = rnd(0, 250) / SPEED, kf;
+      longest = Math.max(longest, (dur + delay) * SPEED);
+      if (reduce) {          // reduced motion: a few bubbles that just appear and fade where they are (no flying)
+        var px = rnd(0.08, 0.92) * W - sz / 2, py = rnd(0.1, 0.6) * H - sz / 2, at = 'translate(' + px + 'px,' + py + 'px)';
+        kf = [{ transform: at, opacity: 0 }, { transform: at, opacity: 0.9, offset: 0.25 }, { transform: at, opacity: 0.9, offset: 0.7 }, { transform: at, opacity: 0 }];
+      } else {               // float up and out from the tapped character with a little sway, then a gentle "pop"
+        var x0 = cx + rnd(-30, 30) - sz / 2, y0 = cy + rnd(-20, 20) - sz / 2,
+            x1 = rnd(0.02, 0.95) * W - sz / 2, y1 = rnd(-0.15, 0.4) * H - sz / 2, sway = rnd(-60, 60);
+        var tf = function (f, s, dx) { return 'translate(' + (x0 + (x1 - x0) * f + (dx || 0)) + 'px,' + (y0 + (y1 - y0) * f) + 'px) scale(' + s + ')'; };
+        kf = [{ transform: tf(0, 0.2), opacity: 0 }, { transform: tf(0.12, 1), opacity: 0.95, offset: 0.12 },
+              { transform: tf(0.5, 1, sway), opacity: 0.95, offset: 0.5 }, { transform: tf(0.9, 1.05, -sway / 2), opacity: 0.9, offset: 0.9 },
+              { transform: tf(1, 1.35), opacity: 0 }];
+      }
+      if (el.animate) {
+        var an = el.animate(kf, { duration: dur, delay: delay, easing: 'ease-out', fill: 'both' });
+        an.onfinish = (function (e) { return function () { e.remove(); }; })(el);
+      }
+      setTimeout((function (e) { return function () { e.remove(); }; })(el), delay + dur + 400);   // safety net
+    }
+    log({ t: 'bubbles', color: c.id, n: n, reduce: reduce, rim: tint.rim, ms: Math.round(longest) });   // ms = real-speed length
+  }
+
   /* ---------- audio (Web Audio, all synthesised) ---------- */
-  var ctx = null, master = null, voiceBus = null;
+  var ctx = null, master = null, voiceBus = null, noiseBuf = null;
   function ensureAudio() {
     try {
       if (!ctx) {
@@ -304,6 +361,36 @@
     } else if (kind === 'happy') {     // rising arpeggio
       [523.25, 659.25, 783.99, 1046.5].forEach(function (fr, i) { tone('triangle', t + i * 0.09, 0.3, fr, 0, 0.3); });
       tone('sine', t + 0.36, 0.5, 1318.5, 0, 0.18);
+    } else if (kind === 'cheer') {     // correct tap (with the 「Yeah!」 clip): a little burst of hand-claps + a "woo-hoo" whistle, ~1.7 s
+      if (!noiseBuf) {                 // 1 s of white noise, made once, reused for every clap
+        noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+        var nd = noiseBuf.getChannelData(0); for (var ni = 0; ni < nd.length; ni++) nd[ni] = Math.random() * 2 - 1;
+      }
+      var clap = function (t0, vol, fc) {   // one clap = a short band-passed noise snap with a fast decay
+        var src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), cg = ctx.createGain();
+        src.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = fc; bp.Q.value = 1.1;
+        cg.gain.setValueAtTime(0.0001, t0); cg.gain.exponentialRampToValueAtTime(vol, t0 + 0.002);
+        cg.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+        src.connect(bp); bp.connect(cg); cg.connect(master);
+        src.start(t0, Math.random() * 0.8, 0.12);
+      };
+      for (var ci = 0; ci < 9; ci++) {        // 9 claps, ~6 per second, two "hands" each with a little jitter; fades at the end
+        var ct = t + 0.3 + ci * 0.155, cv = ci < 6 ? 0.7 : 0.7 - (ci - 5) * 0.16;
+        clap(ct + Math.random() * 0.012, cv, 1100 + Math.random() * 500);
+        clap(ct + 0.012 + Math.random() * 0.02, cv * 0.6, 1600 + Math.random() * 600);
+      }
+      var whistle = function (t0, dur, f0, fPeak, fEnd, vol) {   // soft sine whistle with a little vibrato
+        var o = ctx.createOscillator(), wg = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(fPeak, t0 + dur * 0.45);
+        o.frequency.exponentialRampToValueAtTime(fEnd, t0 + dur);
+        l.frequency.value = 6.5; lg.gain.value = fPeak * 0.012; l.connect(lg); lg.connect(o.frequency);
+        wg.gain.setValueAtTime(0.0001, t0); wg.gain.exponentialRampToValueAtTime(vol, t0 + 0.04);
+        wg.gain.setValueAtTime(vol, t0 + dur * 0.7); wg.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+        o.connect(wg); wg.connect(master); o.start(t0); l.start(t0); o.stop(t0 + dur + 0.02); l.stop(t0 + dur + 0.02);
+      };
+      whistle(t + 0.55, 0.3, 1050, 1500, 1450, 0.15);     // "woo" (rising)
+      whistle(t + 0.9, 0.7, 1300, 2000, 1650, 0.14);     // "hoo!" (higher, then a happy little fall)
     } else if (kind === 'bye') {       // gentle "da-da-da-daa"
       [784, 659.25, 523.25, 784].forEach(function (fr, i) { tone('triangle', t + i * 0.16, i === 3 ? 0.6 : 0.22, fr, 0, 0.28); });
     } else if (kind === 'buzzer') {    // wrong tap: low, soft game-show "嗡" buzzer sliding 220 Hz -> 90 Hz over ~0.55 s
@@ -325,7 +412,7 @@
   }
 
   /* ---------- speech (Cantonese) ---------- */
-  var RATE = 0.85;          // fallback TTS normal rate (intro, Hello, Byebye)
+  var RATE = 0.85;          // fallback TTS normal rate (intro, Yeah, Byebye)
   var QUIZ_RATE = 0.7;      // quiz prompt: slower, said twice
   var QUIZ_GAP_MS = 900;    // pause between the two quiz readings
   var BUZZER_MS = 550;      // length of the wrong-tap buzzer (the retry prompt starts when it ends)
@@ -400,7 +487,7 @@
   /* ---------- pre-recorded voice clips (audio/*.mp3, made with edge-tts neural voices) ---------- */
   var CLIP_NAMES = [];
   COLORS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-slow'); });
-  CLIP_NAMES.push('hello', 'byebye', 'uhoh');
+  CLIP_NAMES.push('yeah', 'byebye');      // v8: 'yeah' replaces 'hello'; 'uhoh' no longer used (files kept, not loaded)
   var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
   T.clips = clipState;
   function clipNotify(n) { var w = clipWaiters[n] || []; clipWaiters[n] = []; w.forEach(function (f) { f(); }); }
@@ -620,18 +707,20 @@
           var b = els[c.id];
           b.classList.add('hand-up');
           retrigger(jumper(c), 'bounce');
-          playSound('happy', c);
-          caption('Hello！', c);
-          log({ t: 'hello', color: c.id });
-          await say('Hello', g, { pitch: 1.35, rate: 0.9, color: c.id, clip: 'hello' });
-          await wait(500, g);
+          // v8 celebration (~1.7 s): an excited 「Yeah!」 + hand-claps + "woo-hoo" whistle, and bubbles in this character's colour
+          playSound('cheer', c);
+          bubbles(c);
+          caption('Yeah！', c);
+          log({ t: 'yeah', color: c.id });
+          await say('Yeah', g, { pitch: 1.4, rate: 1, color: c.id, clip: 'yeah' });
+          await wait(1250, g);                // let the claps + whistle finish (they end ~1.6 s after the tap)
           b.classList.remove('hand-up');
           setShrunkVisual();
           await wait(700, g);
           break;
         }
-        // Wrong tap: the tapped character gives a gentle "not quite" shake with a low buzzer and everyone shrinks back
-        // (v7: no 「呃哦」 clip and no extra pause).
+        // Wrong tap: the tapped character shakes its head and does a "no-no" side-to-side hand wave (never the hand-up pose),
+        // with the low buzzer; everyone shrinks back. No spoken words at all (no 「呃哦」), no extra pause.
         var wj = jumper(res.color);
         retrigger(wj, 'nope');
         log({ t: 'nope', color: res.color.id, attempt: attempt });
@@ -694,7 +783,8 @@
     playSound('start');
     runGame(skipIntro);
   }
-  T.begin = function (skipIntro) { begin(!!skipIntro); };   // test hook only (no on-screen skip option): begin(true) = quiz without intro
+  T.begin = function (skipIntro) { begin(!!skipIntro); };
+  T.bubbles = function (id) { bubbles(byId[id]); };          // test hook only (visual check of bubble tints)   // test hook only (no on-screen skip option): begin(true) = quiz without intro
   var lock = 0;
   function guarded(fn) { return function (e) { var now = Date.now(); if (now - lock < 700) return; lock = now; fn(e); }; }
   document.getElementById('startBtn').addEventListener('click', guarded(function () { begin(false); }));
