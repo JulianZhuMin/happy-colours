@@ -47,3 +47,8 @@ Every Chinese line on screen now has its English directly below: the captions du
 (「紅色」 / Red, 「我係紅色」 / I am red), 「做得好好！」 / Well done!, 「拜拜！」 / Bye bye!, the start and end
 screens, the 再玩過 dialog and the portrait hint 「打橫部機，會更好玩！」 / "Turn the phone sideways — it's more fun!".
 Gameplay and voice are unchanged.
+
+## v10f — hub exit + mic release on leave
+
+「返學樂園」 / Back to AstraGarten on No (and Done) navigates to 星星學樂園.
+Leaving the tab/page at any point fully releases SpeechRecognition / mic (pagehide, beforeunload, unload, visibility hidden).

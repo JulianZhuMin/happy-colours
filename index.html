@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10e">
+<meta name="app-version" content="10f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -216,14 +216,14 @@
     <button type="button" id="again-btn" aria-describedby="again-help">
       <span aria-hidden="true">↻</span><span class="txt"><span>再玩過</span><span class="en-line" lang="en">Play again</span></span>
     </button>
-    <p id="again-help" class="sr-only">家長用：會先問你確認先再玩。睇得見嘅家長亦可以㩒住一秒半直接再玩。<span lang="en">Parent control: asks you to confirm first. Sighted parents can also press and hold for 1.5 seconds.</span></p>
+    <p id="again-help" class="sr-only">家長用：完場後會自動問你再唔再玩。撳「好，再玩過」會即刻再開。撳「返學樂園」就返星星學樂園。<span lang="en">Parent control: after the game ends you are asked whether to play again. Yes restarts. No goes back to AstraGarten.</span></p>
     <div id="again-confirm" class="overlay" hidden>
       <div class="panel" role="alertdialog" aria-modal="true" aria-labelledby="again-title" aria-describedby="again-desc">
         <h2 id="again-title">再玩過？<span class="en-line" lang="en">Play again?</span></h2>
-        <p id="again-desc">重新開始，返去介紹顏色<span class="en-line" lang="en">Starts over from the color introductions.</span></p>
+        <p id="again-desc">再玩過會即刻重新開始。唔玩就返星星學樂園。<span class="en-line" lang="en">Play again starts over right away. Otherwise go back to AstraGarten.</span></p>
         <div class="row">
           <button type="button" id="again-yes">好，再玩過<span class="en-line" lang="en">Yes, play again</span></button>
-          <button type="button" id="again-no">唔使<span class="en-line" lang="en">Not now</span></button>
+          <button type="button" id="again-no">返學樂園<span class="en-line" lang="en">Back to AstraGarten</span></button>
         </div>
       </div>
     </div>
@@ -250,7 +250,8 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10e';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10f';   // bump together with CACHE in sw.js
+  var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';  // 星星學樂園 — parent No / Done
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -1000,6 +1001,8 @@
     gen++; state.open = false; state.hint = null; clearTimeout(state.hintTimer); fingerEl.hidden = true; keepAwake(false);
     setScene('parent'); show('again');
     setTimeout(function () { try { document.getElementById('againTitle').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+    // Auto-ask parent after goodbye (same idea as Say & Go).
+    setTimeout(function () { if (T.scene === 'parent' && againDialog) againDialog.open(); }, 500);
   }
 
   /* ---------- parent controls ---------- */
@@ -1084,18 +1087,46 @@
   }
   document.getElementById('again-yes').addEventListener('click', function () { playAgain(); });
   parentControl(againBtn, playAgain, againDialog.open);
+  function releaseMic() {
+    // Happy Colors has no SpeechRecognition today; still abort any SR/stream defensively and cancel TTS.
+    try {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (window.__cgRecInst) {
+        var r = window.__cgRecInst; window.__cgRecInst = null;
+        try { r.onstart = r.onaudiostart = r.onresult = r.onerror = r.onend = null; } catch (e0) {}
+        try { r.abort(); } catch (e1) { try { r.stop(); } catch (e2) {} }
+      }
+      if (window.__cgMediaStream) {
+        try { window.__cgMediaStream.getTracks().forEach(function (tr) { try { tr.stop(); } catch (e3) {} }); } catch (e4) {}
+        window.__cgMediaStream = null;
+      }
+      try { if (synth) synth.cancel(); } catch (e5) {}
+      try { stopClip(); } catch (e6) {}
+    } catch (e) { /* ignore */ }
+  }
+  function goToHub() {
+    cancelAllHolds(); againDialog.close(true); releaseMic();
+    try { location.assign(HUB_URL); } catch (e) { location.href = HUB_URL; }
+  }
+  document.getElementById('again-no').addEventListener('click', function () { goToHub(); });
 
   document.getElementById('doneBtn').addEventListener('click', guarded(function () {
-    setScene('start'); show('start'); log({ t: 'done' });
-    setTimeout(function () { try { document.getElementById('title').setAttribute('tabindex', '-1'); document.getElementById('title').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
+    log({ t: 'done' }); goToHub();
   }));
 
   document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { stopClip(); try { if (synth) synth.cancel(); } catch (e) { /* ignore */ } }
-    else if (ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { /* ignore */ } }
+    if (document.hidden) {
+      releaseMic();   // any stage: release mic / stop recognition so other apps get clean audio
+      try { stopClip(); } catch (e0) {}
+      try { if (synth) synth.cancel(); } catch (e) { /* ignore */ }
+    } else if (ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (e) { /* ignore */ } }
   });
+  function onPageLeave() { releaseMic(); }
+  window.addEventListener('pagehide', onPageLeave);
+  window.addEventListener('beforeunload', onPageLeave);
+  window.addEventListener('unload', onPageLeave);
 
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
