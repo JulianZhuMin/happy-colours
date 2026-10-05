@@ -7,13 +7,16 @@ Play it: https://julianzhumin.github.io/happy-colours/
 ## How it plays
 
 1. **開始**: the start screen.
-2. **Intro**: the 7 colour characters (紅 黃 藍 綠 灰 黑 白) come in one at a time. Each pops in with its own boing, squeak or pop, then says its colour (「紅色」…).
-3. **Quiz** (7 rounds, each colour once): all 7 stand in a row, in a new random order every question.
-   - Each colour is said twice, slowly, with a short pause. Then the characters grow to show it's time to tap.
+2. **Intro**: the 8 colour characters (紅 黃 藍 綠 灰 黑 白 啡) come in one at a time. Each pops in with its own boing, squeak or pop, then says its colour in Cantonese and then in English (「紅色」 … "Red").
+3. **Quiz** (one question per colour: all 8 colours, each exactly once, in random order; no fixed round count): all 8 stand in a row, in a new random order every question. A replay never starts with the colour the previous game ended on.
+   - A narrator (a grown-up voice, different from the toys) says the colour twice, slowly, with a short pause. Then the characters grow to show it's time to tap.
    - **Right one**: it raises a hand and shouts an excited "Yeah!", with a burst of hand-claps, a "woo-hoo" whistle, and soap bubbles in its own colour floating around the screen (about 2 s).
-   - **Wrong one**: it shakes its head and waves both hands side to side ("no-no"), with a soft, low "buzzer" sound and no words. Everyone shrinks back. The same colour is then asked again with the characters in the same places (a second chance). A second wrong tap gets the same shake and buzzer, then a **hint**: the right character grows a little, steps forward and says 「我係紅色」 (its own colour), then stands still. Only it can be tapped now; taps on the others are ignored.
-     - Tapped: the normal "Yeah!" celebration, then the next colour.
-     - Not tapped within 7 s: a cartoon pointing hand comes and taps it, and it quietly disappears (no words, no sounds, no celebration). Then the next colour comes, and that character is back in the row with the others. Phones that support vibration (Android) also buzz briefly; iPhone Safari can't vibrate.
+   - **A miss** is a wrong tap or 7 s with no tap. On a wrong tap, the tapped character shakes its head and waves both hands side to side ("no-no"), with a soft, low "buzzer" sound and no words; a silent miss has no sound. Everyone shrinks back.
+     - First miss: the same colour is asked again, with the characters in the same places.
+     - Second miss: a **hint**. The right character grows a little, steps forward and says 「我係藍色」 then "I am blue", then stands still. Only it can be tapped now; taps on the others are ignored.
+       - Tapped: the normal "Yeah!" celebration, then the next colour.
+       - Not tapped within 7 s: a cartoon pointing hand comes and taps it, and it quietly disappears (no words, no sounds, no celebration). Then the next colour comes, and that character is back in the row with the others.
+   - Phones that support vibration (Android) also buzz briefly on a wrong tap; iPhone Safari can't vibrate.
 4. **Byebye**: everyone waves.
 5. **Parent screen**: 「再玩過」 (top right) asks 「再玩過？」 before restarting from the intro. Press and hold it for 1.5 s to restart straight away. 「完」 goes back to the start screen.
 
@@ -21,10 +24,12 @@ Reduce-motion is honoured: fades instead of shakes, jumps and hand-waving, and a
 
 ## Voice clips
 
-- Cantonese: edge-tts `zh-HK-HiuGaaiNeural` (colours at −10%, slow quiz versions at −40%, hint lines 「我係X色」 (`*-me.mp3`) at −10%, like the colours). `uhoh.mp3` (「呃哦」) and `hello.mp3` are still in `audio/` but are no longer played or cached (since v7 and v8).
-- Yeah and Byebye: `en-US-AnaNeural`. Yeah is "Yeah!!" at +50 Hz (0.5 s, rising from 410 Hz to 533 Hz).
+- Narrator (the questions, `*-slow.mp3`): edge-tts `zh-HK-HiuMaanNeural`, an adult female voice, at −40% with natural pitch. If a question clip can't load, the phone's zh-HK voice reads it at natural pitch.
+- Toys, Cantonese: `zh-HK-HiuGaaiNeural`: colour names at −10% (`red.mp3` …) and the hint 「我係X色」 (`*-me.mp3`) at −10%.
+- Toys, English: `en-US-AnaNeural` (a child voice): colour names (`*-en.mp3`, "Red!" … "Brown!"; Gray is "Gray." because "Gray!" sounds like "great"), the hint "I am red" (`*-iam.mp3`), Yeah ("Yeah!!" at +50 Hz) and Byebye. English names use US spelling, like "Happy Colors".
+- `uhoh.mp3` (「呃哦」) and `hello.mp3` are still in `audio/` but are no longer played or cached (since v7 and v8).
 - Clips are trimmed, normalised to about −16 LUFS, and encoded as 48 kbps mono MP3.
-- If a clip can't load, the phone's own zh-HK voice reads that line instead.
+- If a clip can't load, the phone's own voice reads that line instead (zh-HK for Cantonese, an English voice for English), so no line is ever skipped.
 
 ## Sound effects
 
