@@ -1,6 +1,6 @@
 // Offline support for Happy Colors 快樂認色. Bump CACHE (and APP_VERSION in index.html) on every release.
 // Pages: network first (revalidated), cache fallback. Audio clips and icons: cache first (they never change within a version).
-var CACHE = 'color-game-v10f';
+var CACHE = 'color-game-v10g';
 var CLIPS = ['red', 'yellow', 'blue', 'green', 'grey', 'black', 'white', 'brown'].reduce(function (a, c) { return a.concat(['./audio/' + c + '.mp3', './audio/' + c + '-en.mp3', './audio/' + c + '-slow.mp3', './audio/' + c + '-me.mp3', './audio/' + c + '-iam.mp3']); }, [])
   .concat(['./audio/yeah.mp3', './audio/well-done.mp3', './audio/byebye.mp3']);
 var FILES = ['./', './index.html', './manifest.json', './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'].concat(CLIPS);

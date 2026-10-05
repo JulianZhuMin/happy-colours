@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10f">
+<meta name="app-version" content="10g">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -197,7 +197,7 @@
     <div class="mini" id="startMini" aria-hidden="true"></div>
     <button id="startBtn" class="big-btn" type="button" aria-label="開始玩 Start">開始<span class="en-line" lang="en" aria-hidden="true">Start</span></button>
     <p class="note" id="voiceNote"></p>
-    <p class="note">八個顏色公仔會逐個出嚟講自己係咩顏色，跟住聽住個顏色，㩒啱嗰個公仔！<span class="en-line" lang="en">Eight color friends come out one by one and say their color. Then listen for the color and tap the right friend!</span></p>
+    <p class="note">八個顏色精靈會逐個出嚟講自己係咩顏色，跟住聽住個顏色，㩒啱嗰個精靈！<span class="en-line" lang="en">Eight Color Genies come out one by one and say their color. Then listen for the color and tap the right Genie!</span></p>
   </section>
 
   <main id="game" class="screen" hidden aria-labelledby="gameTitle">
@@ -250,7 +250,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10f';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10g';   // bump together with CACHE in sw.js
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';  // 星星學樂園 — parent No / Done
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
@@ -300,7 +300,7 @@
   COLORS.forEach(function (c) {
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'char'; b.dataset.color = c.id;
-    b.setAttribute('aria-label', c.zh + '公仔');
+    b.setAttribute('aria-label', c.zh + '精靈');
     b.setAttribute('aria-disabled', 'true');
     b.innerHTML = '<span class="scaler"><span class="jumper">' + charSVG(c) + '</span></span>';
     b.addEventListener('click', function (e) { e.preventDefault(); onCharTap(c); });

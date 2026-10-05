@@ -52,3 +52,7 @@ Gameplay and voice are unchanged.
 
 「返學樂園」 / Back to AstraGarten on No (and Done) navigates to 星星學樂園.
 Leaving the tab/page at any point fully releases SpeechRecognition / mic (pagehide, beforeunload, unload, visibility hidden).
+
+## v10g — Color Genies wording
+
+The color characters are now 顏色精靈 / Color Genies (was 顏色公仔 / color friends) in the start-screen note and button aria-labels (e.g. 「紅色精靈」). Gameplay and voice are unchanged.
