@@ -40,3 +40,10 @@ Every sound effect (boing, squeak, pop, the claps, the "woo-hoo" whistle, the bu
 `sw.js` caches the page, icons and all clips. Bump `CACHE` in sw.js and `APP_VERSION` in index.html together on each release.
 
 Add `?speed=4` to the address to make all waits and animations faster (used by the tests).
+
+## v10e — bilingual screen text
+
+Every Chinese line on screen now has its English directly below: the captions during the intro, quiz and hint
+(「紅色」 / Red, 「我係紅色」 / I am red), 「做得好好！」 / Well done!, 「拜拜！」 / Bye bye!, the start and end
+screens, the 再玩過 dialog and the portrait hint 「打橫部機，會更好玩！」 / "Turn the phone sideways — it's more fun!".
+Gameplay and voice are unchanged.
