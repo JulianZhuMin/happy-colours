@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10b">
+<meta name="app-version" content="10c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -239,7 +239,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10b';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10c';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -524,7 +524,7 @@
   /* ---------- pre-recorded voice clips (audio/*.mp3, made with edge-tts neural voices) ---------- */
   var CLIP_NAMES = [];
   COLORS.forEach(function (c) { CLIP_NAMES.push(c.id, c.id + '-en', c.id + '-slow', c.id + '-me', c.id + '-iam'); });   // v10: + English name, + "I am …"   // v9: '-me' = hint 「我係X色」
-  CLIP_NAMES.push('yeah', 'byebye');      // v8: 'yeah' replaces 'hello'; 'uhoh' no longer used (files kept, not loaded)
+  CLIP_NAMES.push('yeah', 'well-done', 'byebye');      // v10c: + well-done before bye; v8: 'yeah' replaces 'hello'
   var clipData = {}, clipBuf = {}, clipState = {}, clipWaiters = {}, curSrc = null;
   T.clips = clipState;
   function clipNotify(n) { var w = clipWaiters[n] || []; clipWaiters[n] = []; w.forEach(function (f) { f(); }); }
@@ -943,6 +943,9 @@
     setScene('end'); setShrunkVisual();
     await wait(500, g);
     COLORS.forEach(function (c) { els[c.id].classList.add('waving'); });
+    caption('做得好好！');
+    log({ t: 'well-done' });
+    await say('做得好好', g, { pitch: 1.2, rate: 0.9, clip: 'well-done' });
     caption('Byebye！');
     playSound('bye');
     log({ t: 'byebye' });
