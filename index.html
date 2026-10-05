@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10">
+<meta name="app-version" content="10a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -239,7 +239,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10a';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -711,7 +711,7 @@
   }
   function onCharTap(c) {
     if (!state.open || !state.pendingTap) { log({ t: 'tap', color: c.id, result: 'ignored' }); return; }
-    if (state.hint && c.id !== state.hint.id) { log({ t: 'tap', color: c.id, result: 'ignored', why: 'hint' }); return; }   // no buzzer
+    // v10a: after the self-intro hint, a wrong tap counts (one more chance); only ignore taps that are not part of pending wait.
     clearTimeout(state.hintTimer);
     var correct = state.target && c.id === state.target.id;
     log({ t: 'tap', color: c.id, result: correct ? 'correct' : 'wrong', target: state.target && state.target.id });
@@ -746,7 +746,7 @@
       log({ t: 'call', color: c.id, round: round });
       // Up to 3 stages per colour. Stage 1 = ask. A MISS = a wrong tap (head-shake + buzzer) or 7 s with no tap after the
       // question finished. Miss in stage 1 -> stage 2 = ask the SAME colour again aloud (same figures, same positions, no
-      // reshuffle). Miss in stage 2 -> stage 3 = hint (see hint()). A right tap at any stage = normal celebration.
+      // reshuffle). Miss in stage 2 -> stage 3 = hint self-intro, then one more tap chance (see hint()). A right tap at any stage = normal celebration.
       var lastMiss = null;
       for (var attempt = 1; attempt <= MAX_TRIES; attempt++) {
         log({ t: 'ask', color: c.id, round: round, attempt: attempt });
@@ -800,12 +800,12 @@
     await wait(700, g);
   }
 
-  // hint, after the 3rd wrong tap on a colour (v10; was the 2nd in v9): the right character grows a little, steps forward,
+  // hint, after 2 misses (v10a): the right character grows a little, steps forward,
   // says 「我係X色」 and then "I am <colour>",
-  // then stands still and waits (only it can be tapped; taps on the others are silently ignored).
-  //  - tapped within 7 s -> the normal correct celebration, then the next question;
-  //  - no tap in 7 s     -> a cartoon finger comes and taps it, it fades/shrinks away (no celebration, no words),
-  //                         the finger leaves and the game moves on. It comes back with the others for the next question.
+  // then the child gets ONE more tap chance (the "third" try after two wrongs).
+  //  - correct tap within 7 s -> normal celebration, then the next colour;
+  //  - wrong tap             -> buzzer + head-shake, then auto next (finger taps the right one away);
+  //  - no tap in 7 s         -> cartoon finger taps it away (no celebration), then next colour.
   var HINT_WAIT_MS = 7000;
   var MAX_TRIES = 2;                          // v10: 2 asks; a miss on the 2nd ask -> the hint
   var ASK_WAIT_MS = 7000;                     // v10: 7 s without a tap after the question = a miss (like a wrong tap, but silent)
@@ -820,14 +820,23 @@
     caption('我係' + c.zh + ' <span lang="en">I am ' + c.en.toLowerCase() + '</span>', c);
     await say('I am ' + c.en.toLowerCase(), g, { color: c.id, clip: c.id + '-iam', hint: true, lang: 'en', pitch: 1.3, rate: 0.9 });   // "I am blue"
     // the 7-second wait (then the finger) starts only after both lines have finished
-    state.hint = c; state.open = true;
-    b.setAttribute('aria-disabled', 'false');
+    state.hint = c;
+    setOpen(true);   // v10a: all figures tappable for the one post-intro chance (wrong tap counts)
     log({ t: 'hint-open', color: c.id });
     var res = await waitHintTap(g, HINT_WAIT_MS);
     state.hint = null;
     check(g);
-    if (!res.timeout) { await celebrate(c, g); return; }
-    log({ t: 'hint-timeout', color: c.id });
+    if (res.correct) { await celebrate(c, g); return; }
+    if (res.timeout) {
+      log({ t: 'hint-timeout', color: c.id });
+    } else {
+      // third try wrong after self-intro → auto next part
+      var wj = jumper(res.color);
+      retrigger(wj, 'nope');
+      log({ t: 'hint-wrong', color: res.color.id, target: c.id });
+      buzz();
+      await wait(700, g);
+    }
     caption('');
     await fingerTap(c, g);
   }
