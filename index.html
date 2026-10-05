@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10c">
+<meta name="app-version" content="10d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -239,7 +239,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10c';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10d';   // bump together with CACHE in sw.js
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
   document.documentElement.style.setProperty('--spd', SPEED);
@@ -438,7 +438,7 @@
 
   /* ---------- speech (Cantonese) ---------- */
   var RATE = 0.85;          // fallback TTS normal rate (intro, Yeah, Byebye)
-  var QUIZ_RATE = 0.7;      // quiz prompt: slower, said twice
+  var QUIZ_RATE = 0.7;      // quiz prompt (Chinese clip): slower; English uses intro rate
   var QUIZ_GAP_MS = 900;    // pause between the two quiz readings
   var BUZZER_MS = 550;      // length of the wrong-tap buzzer (the retry prompt starts when it ends)
   var synth = window.speechSynthesis || null;
@@ -769,14 +769,14 @@
         caption(c.zh, c);
         var res;
         if (attempt === 1) {
-          // First ask: colour twice, then taps open (unchanged).
+          // First ask: Chinese once, then English once, then taps open.
           await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, pitch: 1, prompt: 1, clip: c.id + '-slow', attempt: attempt });
           await wait(QUIZ_GAP_MS, g);
-          await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, pitch: 1, prompt: 2, clip: c.id + '-slow', attempt: attempt });
+          await say(c.en, g, { color: c.id, pitch: 1.3, rate: 0.9, prompt: 2, clip: c.id + '-en', lang: 'en', attempt: attempt });
           setOpen(true);
           res = await waitTap(g, ASK_WAIT_MS);
         } else {
-          // v10b: from the 2nd ask onward, every figure stays tappable DURING the announce
+          // From the 2nd ask onward, every figure stays tappable DURING the announce
           // (correct → cheer, wrong → buzzer); no need to wait for speech to finish.
           setOpen(true);
           res = waitTap(g, null);
@@ -786,7 +786,7 @@
               if (!state.open) return;
               await wait(QUIZ_GAP_MS, g);
               if (!state.open) return;
-              await say(c.zh, g, { color: c.id, rate: QUIZ_RATE, pitch: 1, prompt: 2, clip: c.id + '-slow', attempt: attempt });
+              await say(c.en, g, { color: c.id, pitch: 1.3, rate: 0.9, prompt: 2, clip: c.id + '-en', lang: 'en', attempt: attempt });
               if (!state.open) return;
               armMissTimeout(g, ASK_WAIT_MS);
             } catch (e) { if (e !== CANCEL) throw e; }
