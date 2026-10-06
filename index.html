@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10i">
+<meta name="app-version" content="10j">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -253,7 +253,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10i';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10j';   // bump together with CACHE in sw.js
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';  // 星星學樂園 — parent No / Done
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
@@ -882,7 +882,7 @@
         if (!state.open) return;
         caption('我係' + c.zh + EN('I am ' + c.en.toLowerCase()), c);
         await say('I am ' + c.en.toLowerCase(), g, { color: c.id, clip: c.id + '-iam', hint: true, lang: 'en', pitch: 1.3, rate: 0.9 });   // "I am blue"
-        row.classList.remove('focus');       // v10i: intro done -> everyone back in the row
+        row.classList.remove('focus'); b.classList.remove('hint');   // v10j: intro done -> everyone (incl. the hint genie) back in the row
         if (!state.open) return;
         armMissTimeout(g, HINT_WAIT_MS);
       } catch (e) { if (e !== CANCEL) throw e; }
