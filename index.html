@@ -6,7 +6,7 @@
 <title>Happy Colors 快樂認色</title>
 <meta name="description" content="快樂認色 Happy Colors：俾兩至四歲小朋友玩嘅廣東話認顏色遊戲。A Cantonese color game for toddlers.">
 <meta name="theme-color" content="#FFF6E5">
-<meta name="app-version" content="10h">
+<meta name="app-version" content="10i">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -153,6 +153,9 @@
   #row .char.hint { z-index: 3; }
   #row .char.hint .scaler { transform: translateY(14%) scale(1.45); }   /* v10h: hint genie comes further forward + bigger */
   #row .char.hint .jumper { filter: drop-shadow(0 16px 14px rgba(0,0,0,.32)); }
+  /* v10i: while the hint genie introduces itself, the others step back + fade (still tappable), then come back */
+  #row.focus .char:not(.hint) .scaler { transform: scale(.8); opacity: .3; }
+  .char .scaler { transition: transform calc(.35s / var(--spd)) cubic-bezier(.3,1.6,.5,1), opacity calc(.35s / var(--spd)) ease; }
   #row .char.gone { animation: goneOut calc(.45s / var(--spd)) ease-in forwards; pointer-events: none; }
   @keyframes goneOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6%) scale(.35); } }
   #finger { position: fixed; left: 0; top: 0; width: clamp(72px, 19vh, 140px); height: auto; z-index: 6; pointer-events: none; opacity: 0;
@@ -250,7 +253,7 @@
 (function () {
   'use strict';
   var APP_NAME = { zh: '快樂認色', en: 'Happy Colors' };   // also in <title>, apple-mobile-web-app-title, manifest.json, README
-  var APP_VERSION = '10h';   // bump together with CACHE in sw.js
+  var APP_VERSION = '10i';   // bump together with CACHE in sw.js
   var HUB_URL = 'https://julianzhumin.github.io/AstraGarten/';  // 星星學樂園 — parent No / Done
   var params = new URLSearchParams(location.search);
   var SPEED = Math.max(0.25, Math.min(20, parseFloat(params.get('speed')) || 1));   // test hook: ?speed=4 makes everything faster
@@ -864,6 +867,7 @@
     await wait(600, g);                       // let the buzzer + head-shake finish first
     var b = els[c.id];
     b.classList.add('hint');
+    row.classList.add('focus');            // v10i: others step back + fade
     log({ t: 'hint', color: c.id });
     caption('我係' + c.zh + EN('I am ' + c.en.toLowerCase()), c);
     state.hint = c;
@@ -878,11 +882,13 @@
         if (!state.open) return;
         caption('我係' + c.zh + EN('I am ' + c.en.toLowerCase()), c);
         await say('I am ' + c.en.toLowerCase(), g, { color: c.id, clip: c.id + '-iam', hint: true, lang: 'en', pitch: 1.3, rate: 0.9 });   // "I am blue"
+        row.classList.remove('focus');       // v10i: intro done -> everyone back in the row
         if (!state.open) return;
         armMissTimeout(g, HINT_WAIT_MS);
       } catch (e) { if (e !== CANCEL) throw e; }
     })();
     res = await res;
+    row.classList.remove('focus');
     state.hint = null;
     check(g);
     if (res.correct) { await celebrate(c, g); return; }
@@ -981,7 +987,7 @@
 
   async function runGame(skipIntro) {
     var g = ++gen;
-    state.skipIntro = !!skipIntro; state.open = false; state.hint = null; clearTimeout(state.hintTimer);
+    state.skipIntro = !!skipIntro; state.open = false; state.hint = null; row.classList.remove('focus'); clearTimeout(state.hintTimer);
     fingerEl.hidden = true;
     log({ t: 'game', skipIntro: !!skipIntro });
     show('game'); caption(''); resetChars(); stage.className = 'closed';
@@ -998,7 +1004,7 @@
     }
   }
   function showAgain() {
-    gen++; state.open = false; state.hint = null; clearTimeout(state.hintTimer); fingerEl.hidden = true; keepAwake(false);
+    gen++; state.open = false; state.hint = null; row.classList.remove('focus'); clearTimeout(state.hintTimer); fingerEl.hidden = true; keepAwake(false);
     setScene('parent'); show('again');
     setTimeout(function () { try { document.getElementById('againTitle').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 50);
     // Auto-ask parent after goodbye (same idea as Say & Go).
